@@ -100,7 +100,7 @@ async function handle(req: createServer.IncomingMessage, res: http.ServerRespons
 }
 
 // @ts-expect-error - l
-const dummyRouter = WebApp.connectHandlers._router;
+const dummyRouter = WebApp.connectHandlers.router;
 
 // Create a dummy route
 dummyRouter.route('*');
@@ -110,4 +110,4 @@ stackedRoute.handle = handle;
 
 // Move the layer to the top :)
 // @ts-expect-error - l
-WebApp.connectHandlers._router.stack.unshift(stackedRoute);
+WebApp.connectHandlers.router.stack.unshift(stackedRoute);
