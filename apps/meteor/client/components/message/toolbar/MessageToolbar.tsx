@@ -92,10 +92,10 @@ const MessageToolbar = ({
 	// TODO: move this to another place
 	useWebDAVMessageAction();
 	useNewDiscussionMessageAction();
-	usePermalinkPinned();
 	useStarMessageAction(message, { room, user });
 	useUnstarMessageAction(message, { room, user });
 	usePermalinkStar(message, { subscription, user });
+	usePermalinkPinned(message, { subscription });
 
 	const actionsQueryResult = useQuery({
 		queryKey: roomsQueryKeys.messageActionsWithParameters(room._id, message),

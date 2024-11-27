@@ -6,18 +6,24 @@ import { useTranslation } from 'react-i18next';
 import { MessageAction } from '../../../../app/ui-utils/client/lib/MessageAction';
 import { getPermaLink } from '../../../lib/getPermaLink';
 
-export const usePermalinkPinned = () => {
+export const usePermalinkPinned = (message: IMessage, { subscription }: { ISubscription }) => {
 	const { t } = useTranslation();
 
 	const dispatchToastMessage = useToastMessageDispatch();
 
+	const encrypted = isE2EEMessage(message);
+
 	useEffect(() => {
+		if (subscription) {
+			return;
+		}
+
 		MessageAction.addButton({
 			id: 'permalink-pinned',
 			icon: 'permalink',
 			label: 'Copy_link',
 			context: ['pinned'],
-			async action(_, { message }) {
+			async action() {
 				try {
 					const permalink = await getPermaLink(message._id);
 					navigator.clipboard.writeText(permalink);
@@ -26,18 +32,13 @@ export const usePermalinkPinned = () => {
 					dispatchToastMessage({ type: 'error', message: e });
 				}
 			},
-			condition({ subscription }) {
-				return !!subscription;
-			},
 			order: 5,
 			group: 'menu',
-			disabled({ message }) {
-				return isE2EEMessage(message);
-			},
+			disabled: () => encrypted,
 		});
 
 		return () => {
 			MessageAction.removeButton('permalink-pinned');
 		};
-	}, [dispatchToastMessage, t]);
+	}, [dispatchToastMessage, encrypted, message._id, subscription, t]);
 };
