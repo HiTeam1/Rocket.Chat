@@ -1,5 +1,5 @@
 import type { IUser } from '@rocket.chat/core-typings';
-import { Box } from '@rocket.chat/fuselage';
+import { Box, Button } from '@rocket.chat/fuselage';
 import { useMergedRefs } from '@rocket.chat/fuselage-hooks';
 import { usePermission, useRole, useSetting, useTranslation, useUser, useUserPreference } from '@rocket.chat/ui-contexts';
 import type { MouseEventHandler, ReactElement, UIEvent } from 'react';
@@ -102,7 +102,7 @@ const RoomBody = (): ReactElement => {
 
 	const { innerRef: isAtBottomInnerRef, atBottomRef, sendToBottom, sendToBottomIfNecessary, isAtBottom } = useListIsAtBottom();
 
-	const { innerRef: getMoreInnerRef } = useGetMore(room._id, atBottomRef);
+	const { innerRef: getMoreInnerRef, handleGetMore } = useGetMore(room._id, atBottomRef);
 
 	const { wrapperRef: leaderBannerWrapperRef, hideLeaderHeader, innerRef: leaderBannerInnerRef } = useLeaderBanner();
 
@@ -307,6 +307,9 @@ const RoomBody = (): ReactElement => {
 								</div>
 							</div>
 							<RoomComposer>
+								<Button small primary onClick={handleGetMore}>
+									Select all messages
+								</Button>
 								<ComposerContainer
 									subscription={subscription}
 									onResize={handleComposerResize}
