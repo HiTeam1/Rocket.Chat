@@ -15,6 +15,7 @@ import { usePermalinkStar } from './usePermalinkStar';
 import { useStarMessageAction } from './useStarMessageAction';
 import { useUnstarMessageAction } from './useUnstarMessageAction';
 import { useWebDAVMessageAction } from './useWebDAVMessageAction';
+import { useReplyInThreadMessageAction } from '../../../../app/threads/client/messageAction/useReplyInThreadMessageAction';
 import type { MessageActionContext } from '../../../../app/ui-utils/client/lib/MessageAction';
 import { MessageAction } from '../../../../app/ui-utils/client/lib/MessageAction';
 import { useEmojiPickerData } from '../../../contexts/EmojiPickerContext';
@@ -94,6 +95,7 @@ const MessageToolbar = ({
 	useStarMessageAction(message, { room, user });
 	useUnstarMessageAction(message, { room, user });
 	usePermalinkStar(message, { subscription, user });
+	useReplyInThreadMessageAction(message, { room, subscription });
 
 	const actionsQueryResult = useQuery({
 		queryKey: roomsQueryKeys.messageActionsWithParameters(room._id, message),
