@@ -23,7 +23,7 @@ loginStream.allowRead(function(eventName, extraData) {
 	const user = Users.findOneByIdAndLoginToken(userId, token);
 	if (!user) { return false; }
 
-	ChannelHandler.onLogin(userId, this.connection.id);
+	ChannelHandler.onLogin(userId, this.connection.id, token);
 	return true;
 }); // TODO-Hi: think what do it in client if the sub wasn't completed
 

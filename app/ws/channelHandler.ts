@@ -1,14 +1,15 @@
+import loginStream from '../lib/server/lib/loginStream';
 import { Subscriptions } from '../models/server';
 import { settings } from '../settings/server';
 import { addChannelOnCreate, decreaseChannelListenerCountOnUser, removeConnectionId, updateMappingsOnSub } from './connectionMappings';
-import './createRoomsTest';
+// import './createRoomsTest';
 
-const onLogin = (userId: string, connectionId: string): void => {
+const onLogin = (userId: string, connectionId: string, loginToken: string): void => {
 	console.log('Subscribing to ', userId);
-
+	loginStream.emit('badSubscription', 'working????')
 	const channels: Set<string> = new Set(Subscriptions.findByUserId(userId, { rid: 1 }).map(({ rid }: { rid: string }) => `room-${ rid }`));
 	channels.add(`user-${ userId }`);
-	updateMappingsOnSub(connectionId, channels, userId);
+	updateMappingsOnSub(connectionId, channels, userId, loginToken);
 };
 
 const onDisconnect = (userId: string, connectionId: string): void => {

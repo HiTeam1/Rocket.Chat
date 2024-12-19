@@ -1,3 +1,4 @@
+import loginStream from '../lib/server/lib/loginStream';
 import redis from '../redis/redis';
 import { acquireLock, acquireLocks, lockUser } from './channelLocks';
 
@@ -18,7 +19,7 @@ const addConnIdToUsersMap = (userId: string, connectionId: string): void => {
 	}
 };
 
-const updateMappingsOnSub = (connectionId: string, channels: Set<string>, userId: string): void => {
+const updateMappingsOnSub = (connectionId: string, channels: Set<string>, userId: string, loginToken: string): void => {
 	addConnIdToUsersMap(userId, connectionId);
 
 	connectionToChannels.set(connectionId, channels);
@@ -27,7 +28,11 @@ const updateMappingsOnSub = (connectionId: string, channels: Set<string>, userId
 		const release = await acquireLock(channel);
 		channelListeners.set(channel, (channelListeners.get(channel) || new Set()).add(connectionId));
 		if (channelListeners.get(channel)?.size === 1) {
+			
 			redis.subscribe(channel);
+			console.log('emittingggg');
+			
+			loginStream.emit(`${userId}/${loginToken}/badSubscription`, 'working????')
 		}
 		release();
 	});
@@ -102,6 +107,8 @@ const addChannelOnCreate = async (channel: string, userId: string): Promise<void
 			channelListeners.set(channel, (channelListeners.get(channel) || new Set()).add(connectionId));
 			if (channelListeners.get(channel)?.size === 1) {
 				redis.subscribe(channel);
+				console.log('emittingggg');
+				loginStream.emit('badSubscription', 'working????')
 			}
 		});
 	} finally {
@@ -109,10 +116,10 @@ const addChannelOnCreate = async (channel: string, userId: string): Promise<void
 	}
 };
 
-setInterval(() => {
-	console.log('channelListeners: ', channelListeners);
-	console.log('connectionToChannels: ', connectionToChannels);
-	console.log('userConnections: ', userConnections);
-}, 5000);
+// setInterval(() => {
+// 	console.log('channelListeners: ', channelListeners);
+// 	console.log('connectionToChannels: ', connectionToChannels);
+// 	console.log('userConnections: ', userConnections);
+// }, 5000);
 
 export { addChannelOnCreate, decreaseChannelListenerCountOnUser, removeConnectionId, updateMappingsOnSub };
