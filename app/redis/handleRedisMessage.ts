@@ -1,25 +1,30 @@
-import superjson from 'superjson';
+import superjson from "superjson";
 
-import redis from './redis';
+import redis from "./redis";
 
 interface IRedisHandlers {
-	rocketchat_message: Function;
-	rocketchat_subscription: Function;
-	rocketchat_room: Function;
-	rocketchat_settings: Function;
-	users: Function;
+  rocketchat_message?: Function;
+  rocketchat_subscription?: Function;
+  rocketchat_room?: Function;
+  rocketchat_settings?: Function;
+  users?: Function;
 }
 
-export const redisMessageHandlers: Partial<IRedisHandlers> = {};
+interface IMessage {
+  id: string;
+  data: any;
+  ns: keyof IRedisHandlers;
+  diff?: any;
+  clientAction: string;
+}
 
-redis.on('message', (channel: string, msg: string) => {
-	console.log('new message from redis');
+export const redisMessageHandlers: IRedisHandlers = {};
 
-	const message = superjson.parse(msg);
-	const { ns } = message as { ns: keyof IRedisHandlers};
-	const handler = redisMessageHandlers[ns];
+redis.on("message", (_channel: string, msg: string) => {
+  const message = JSON.parse(msg) as IMessage;
+  const handler = redisMessageHandlers[message.ns];
 
-	if (handler) {
-		return handler(message);
-	}
+  if (handler) {
+    return handler(message);
+  }
 });

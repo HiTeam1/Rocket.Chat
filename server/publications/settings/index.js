@@ -97,7 +97,7 @@ Meteor.methods({
 	},
 });
 
-const handleSettings = (clientAction, id, data, diff) => {
+const handleSettings = ({clientAction, id, data, diff}) => {
 	if (diff && Object.keys(diff).length === 1 && diff._updatedAt) {
 		// avoid useless changes
 		return;
@@ -148,22 +148,20 @@ const handleSettings = (clientAction, id, data, diff) => {
 		}
 	}
 };
-const handleSettingRedis = (data) =>
-	handleSettings(data.clientAction, data, data._id);
 
 if (settings.get('Use_Oplog_As_Real_Time')) {
-	Settings.on('change', ({ clientAction, id, data, diff }) => {
-		handleSettings(clientAction, id, data, diff);
+	Settings.on('change', (oplog) => {
+		handleSettings(oplog);
 	});
 } else {
-	Settings.on('change', ({ clientAction, id, data, diff }) => {
-		data = data || Settings.findOneById(id);
-		const newdata = {
-			...data,
-			ns: 'rocketchat_settings',
-			clientAction,
-		};
-		publishToRedis(`all`, newdata);
-	});
+	// Settings.on('change', ({ clientAction, id, data, diff }) => {
+	// 	data = data || Settings.findOneById(id);
+	// 	const newdata = {
+	// 		...data,
+	// 		ns: 'rocketchat_settings',
+	// 		clientAction,
+	// 	};
+	// 	publishToRedis(`all`, newdata);
+	// });
 }
-redisMessageHandlers['rocketchat_settings'] = handleSettingRedis;
+redisMessageHandlers['rocketchat_settings'] = handleSettings;
