@@ -14,8 +14,8 @@ import ChannelHandler from '/app/ws/channelHandler';
 const handleSubscriptionChange = Meteor.bindEnvironment(({id, clientAction, data}) => {
 	switch (clientAction) {
 		case 'inserted':
-			console.log(`room-${ data.rid }`, data.u._id);
 			ChannelHandler.addChannelOnCreate(`room-${ data.rid }`, data.u._id);
+			break;
 		case 'removed':
 			ChannelHandler.removeUserBindToRoom(data.rid, data.u._id);
 			// emit a removed event on msg stream to remove the user's stream-room-messages subscription when the user is removed from room

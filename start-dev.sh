@@ -20,4 +20,4 @@ export OVERWRITE_SETTING_Show_Setup_Wizard=completed
 
 
 
-OVERWRITE_SETTING_Show_Setup_Wizard=completed meteor
+OVERWRITE_SETTING_Show_Setup_Wizard=completed DEBUG=ioredis:* meteor

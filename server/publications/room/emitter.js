@@ -13,7 +13,7 @@ const getSubscriptions = (id) => {
 	return Subscriptions.trashFind({ rid: id }, { fields });
 };
 
-const handleRoom = ({clientAction, id, data}) => {
+const handleRoom = Meteor.bindEnvironment(({clientAction, id, data}) => {
 	if (clientAction === 'removed') {
 		getSubscriptions(id).forEach(({ u }) => {
 			Notifications.notifyUserInThisInstance(
@@ -27,7 +27,7 @@ const handleRoom = ({clientAction, id, data}) => {
 
 	Notifications.streamUser.__emit(id, clientAction, data);
 	emitRoomDataEvent(id, data);
-};
+});
 
 if (settings.get('Use_Oplog_As_Real_Time')) {
 	Rooms.on('change', (oplog) => {

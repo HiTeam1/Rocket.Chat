@@ -1,5 +1,3 @@
-import superjson from "superjson";
-
 import redis from "./redis";
 
 interface IRedisHandlers {
