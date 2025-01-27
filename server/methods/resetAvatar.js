@@ -1,11 +1,11 @@
-import { Meteor } from 'meteor/meteor';
 import { DDPRateLimiter } from 'meteor/ddp-rate-limiter';
+import { Meteor } from 'meteor/meteor';
 
+import { hasPermission } from '../../app/authorization/server';
 import { FileUpload } from '../../app/file-upload';
 import { Users } from '../../app/models/server';
 import { settings } from '../../app/settings';
-import { Notifications } from '../../app/notifications';
-import { hasPermission } from '../../app/authorization/server';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 Meteor.methods({
 	resetAvatar(userId) {
@@ -43,9 +43,13 @@ Meteor.methods({
 
 		FileUpload.getStore('Avatars').deleteByName(user.username);
 		Users.unsetAvatarData(user._id);
-		Notifications.notifyLogged('updateAvatar', {
-			username: user.username,
-			etag: null,
+		publishToRedis('broadcast', {
+			funcName: 'notifyLogged',
+			eventName: 'updateAvatar',
+			value: {
+				username: user.username,
+				etag: null,
+			},
 		});
 	},
 });
