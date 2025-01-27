@@ -1,11 +1,11 @@
-import { Meteor } from 'meteor/meteor';
 import { Match } from 'meteor/check';
+import { Meteor } from 'meteor/meteor';
 import { Random } from 'meteor/random';
 import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
 
 import { Rooms, Subscriptions } from '../../models';
-import { Notifications } from '../../notifications';
 import { slashCommands } from '../../utils';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 /*
 * Hide is a named function that will replace /hide commands
@@ -29,26 +29,38 @@ function Hide(command, param, item) {
 		});
 
 		if (!roomObject) {
-			return Notifications.notifyUser(user._id, 'message', {
-				_id: Random.id(),
-				rid: item.rid,
-				ts: new Date(),
-				msg: TAPi18n.__('Channel_doesnt_exist', {
-					postProcess: 'sprintf',
-					sprintf: [room],
-				}, user.language),
+			return publishToRedis(`room-${item.rid}`, {
+				broadcast: true,
+				key: Meteor.userId(),
+				funcName: 'notifyUser',
+				eventName: 'message',
+				value: {
+					_id: Random.id(),
+					rid: item.rid,
+					ts: new Date(),
+					msg: TAPi18n.__('Channel_doesnt_exist', {
+						postProcess: 'sprintf',
+						sprintf: [room],
+					}, user.language),
+				},
 			});
 		}
 
 		if (!Subscriptions.findOneByRoomIdAndUserId(room._id, user._id, { fields: { _id: 1 } })) {
-			return Notifications.notifyUser(user._id, 'message', {
-				_id: Random.id(),
-				rid: item.rid,
-				ts: new Date(),
-				msg: TAPi18n.__('error-logged-user-not-in-room', {
-					postProcess: 'sprintf',
-					sprintf: [room],
-				}, user.language),
+			return publishToRedis(`room-${item.rid}`, {
+				broadcast: true,
+				key: Meteor.userId(),
+				funcName: 'notifyUser',
+				eventName: 'message',
+				value: {
+					_id: Random.id(),
+					rid: item.rid,
+					ts: new Date(),
+					msg: TAPi18n.__('error-logged-user-not-in-room', {
+						postProcess: 'sprintf',
+						sprintf: [room],
+					}, user.language),
+				},
 			});
 		}
 		rid = roomObject._id;
@@ -56,11 +68,17 @@ function Hide(command, param, item) {
 
 	Meteor.call('hideRoom', rid, (error) => {
 		if (error) {
-			return Notifications.notifyUser(user._id, 'message', {
-				_id: Random.id(),
-				rid: item.rid,
-				ts: new Date(),
-				msg: TAPi18n.__(error, null, user.language),
+			return publishToRedis(`room-${item.rid}`, {
+				broadcast: true,
+				key: Meteor.userId(),
+				funcName: 'notifyUser',
+				eventName: 'message',
+				value: {
+					_id: Random.id(),
+					rid: item.rid,
+					ts: new Date(),
+					msg: TAPi18n.__(error, null, user.language),
+				},
 			});
 		}
 	});

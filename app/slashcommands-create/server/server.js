@@ -1,12 +1,12 @@
-import { Meteor } from 'meteor/meteor';
 import { Match } from 'meteor/check';
+import { Meteor } from 'meteor/meteor';
 import { Random } from 'meteor/random';
 import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
 
-import { settings } from '../../settings';
-import { Notifications } from '../../notifications';
 import { Rooms } from '../../models';
+import { settings } from '../../settings';
 import { slashCommands } from '../../utils';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 function Create(command, params, item) {
 	function getParams(str) {
@@ -36,15 +36,22 @@ function Create(command, params, item) {
 	const user = Meteor.users.findOne(Meteor.userId());
 	const room = Rooms.findOneByName(channel);
 	if (room != null) {
-		Notifications.notifyUser(Meteor.userId(), 'message', {
-			_id: Random.id(),
-			rid: item.rid,
-			ts: new Date(),
-			msg: TAPi18n.__('Channel_already_exist', {
-				postProcess: 'sprintf',
-				sprintf: [channel],
-			}, user.language),
+		publishToRedis(`room-${item.rid}`, {
+			broadcast: true,
+			key: Meteor.userId(),
+			funcName: 'notifyUser',
+			eventName: 'message',
+			value: {
+				_id: Random.id(),
+				rid: item.rid,
+				ts: new Date(),
+				msg: TAPi18n.__('Channel_already_exist', {
+					postProcess: 'sprintf',
+					sprintf: [channel],
+				}, user.language),
+			},
 		});
+
 		return;
 	}
 

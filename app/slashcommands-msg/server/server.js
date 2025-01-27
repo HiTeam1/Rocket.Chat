@@ -1,11 +1,11 @@
-import { Meteor } from 'meteor/meteor';
 import { Match } from 'meteor/check';
+import { Meteor } from 'meteor/meteor';
 import { Random } from 'meteor/random';
 import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
 
-import { slashCommands } from '../../utils';
-import { Notifications } from '../../notifications';
 import { Users } from '../../models';
+import { slashCommands } from '../../utils';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 /*
 * Msg is a named function that will replace /msg commands
@@ -19,11 +19,17 @@ function Msg(command, params, item) {
 	const separator = trimmedParams.indexOf(' ');
 	const user = Meteor.users.findOne(Meteor.userId());
 	if (separator === -1) {
-		return	Notifications.notifyUser(Meteor.userId(), 'message', {
-			_id: Random.id(),
-			rid: item.rid,
-			ts: new Date(),
-			msg: TAPi18n.__('Username_and_message_must_not_be_empty', null, user.language),
+		return publishToRedis(`room-${item.rid}`, {
+			broadcast: true,
+			key: Meteor.userId(),
+			funcName: 'notifyUser',
+			eventName: 'message',
+			value: {
+				_id: Random.id(),
+				rid: item.rid,
+				ts: new Date(),
+				msg: TAPi18n.__('Username_and_message_must_not_be_empty', null, user.language),
+			},
 		});
 	}
 	const message = trimmedParams.slice(separator + 1);
@@ -31,15 +37,22 @@ function Msg(command, params, item) {
 	const targetUsername = targetUsernameOrig.replace('@', '');
 	const targetUser = Users.findOneByUsernameIgnoringCase(targetUsername);
 	if (targetUser == null) {
-		Notifications.notifyUser(Meteor.userId(), 'message', {
-			_id: Random.id(),
-			rid: item.rid,
-			ts: new Date(),
-			msg: TAPi18n.__('Username_doesnt_exist', {
-				postProcess: 'sprintf',
-				sprintf: [targetUsernameOrig],
-			}, user.language),
+		publishToRedis(`room-${item.rid}`, {
+			broadcast: true,
+			key: Meteor.userId(),
+			funcName: 'notifyUser',
+			eventName: 'message',
+			value: {
+				_id: Random.id(),
+				rid: item.rid,
+				ts: new Date(),
+				msg: TAPi18n.__('Username_doesnt_exist', {
+					postProcess: 'sprintf',
+					sprintf: [targetUsernameOrig],
+				}, user.language),
+			},
 		});
+
 		return;
 	}
 	const { rid } = Meteor.call('createDirectMessage', targetUsername);

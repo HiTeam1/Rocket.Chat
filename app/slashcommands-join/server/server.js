@@ -1,11 +1,11 @@
-import { Meteor } from 'meteor/meteor';
 import { Match } from 'meteor/check';
+import { Meteor } from 'meteor/meteor';
 import { Random } from 'meteor/random';
 import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
 
 import { Rooms, Subscriptions } from '../../models';
-import { Notifications } from '../../notifications';
 import { slashCommands } from '../../utils';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 function Join(command, params, item) {
 	if (command !== 'join' || !Match.test(params, String)) {
@@ -19,14 +19,20 @@ function Join(command, params, item) {
 	const user = Meteor.users.findOne(Meteor.userId());
 	const room = Rooms.findOneByNameAndType(channel, 'c');
 	if (!room) {
-		Notifications.notifyUser(Meteor.userId(), 'message', {
-			_id: Random.id(),
-			rid: item.rid,
-			ts: new Date(),
-			msg: TAPi18n.__('Channel_doesnt_exist', {
-				postProcess: 'sprintf',
-				sprintf: [channel],
-			}, user.language),
+		publishToRedis(`room-${item.rid}`, {
+			broadcast: true,
+			key: Meteor.userId(),
+			funcName: 'notifyUser',
+			eventName: 'message',
+			value: {
+				_id: Random.id(),
+				rid: item.rid,
+				ts: new Date(),
+				msg: TAPi18n.__('Channel_doesnt_exist', {
+					postProcess: 'sprintf',
+					sprintf: [channel],
+				}, user.language),
+			},
 		});
 	}
 

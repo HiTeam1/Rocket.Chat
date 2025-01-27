@@ -3,7 +3,7 @@ import { Random } from 'meteor/random';
 import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
 
 import { slashCommands } from '../../utils';
-import { Notifications } from '../../notifications';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 /*
 * Help is a named function that will replace /join commands
@@ -39,14 +39,20 @@ slashCommands.add('help', function Help(command, params, item) {
 	},
 	];
 	keys.forEach((key) => {
-		Notifications.notifyUser(Meteor.userId(), 'message', {
-			_id: Random.id(),
-			rid: item.rid,
-			ts: new Date(),
-			msg: TAPi18n.__(Object.keys(key)[0], {
-				postProcess: 'sprintf',
-				sprintf: [key[Object.keys(key)[0]]],
-			}, user.language),
+		publishToRedis(`room-${item.rid}`, {
+			broadcast: true,
+			key: Meteor.userId(),
+			funcName: 'notifyUser',
+			eventName: 'message',
+			value: {
+				_id: Random.id(),
+				rid: item.rid,
+				ts: new Date(),
+				msg: TAPi18n.__(Object.keys(key)[0], {
+					postProcess: 'sprintf',
+					sprintf: [key[Object.keys(key)[0]]],
+				}, user.language),
+			},
 		});
 	});
 }, {
