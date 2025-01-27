@@ -1,12 +1,12 @@
-import { Meteor } from 'meteor/meteor';
 import { Match } from 'meteor/check';
+import { Meteor } from 'meteor/meteor';
 import { Random } from 'meteor/random';
-import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
 
-import { Rooms, Subscriptions, Users } from '../../../models';
+import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
 import { hasPermission } from '../../../authorization';
+import { Rooms, Subscriptions, Users } from '../../../models';
 import { addUserToRoom } from '../functions';
-import { Notifications } from '../../../notifications';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 Meteor.methods({
 	addUsersToRoom(data = {}) {
@@ -73,14 +73,16 @@ Meteor.methods({
 			if (!subscription) {
 				addUserToRoom(data.rid, newUser, user);
 			} else {
-				Notifications.notifyUser(userId, 'message', {
-					_id: Random.id(),
-					rid: data.rid,
-					ts: new Date(),
-					msg: TAPi18n.__('Username_is_already_in_here', {
-						postProcess: 'sprintf',
-						sprintf: [newUser.username],
-					}, user.language),
+				publishToRedis(`room-${data.rid}`, {
+					broadcast: true, key: userId, funcName: 'notifyUser', eventName: 'message', value: {
+						_id: Random.id(),
+						rid: data.rid,
+						ts: new Date(),
+						msg: TAPi18n.__('Username_is_already_in_here', {
+							postProcess: 'sprintf',
+							sprintf: [newUser.username],
+						}, user.language),
+					},
 				});
 			}
 		});
