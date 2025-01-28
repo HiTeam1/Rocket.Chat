@@ -59,7 +59,7 @@ export const deleteMessage = function (message, user) {
 	} else if (settings.get('Use_Oplog_As_Real_Time')) {
 		Notifications.notifyRoom(message.rid, 'deleteMessage', { _id: message._id });
 	} else {
-		publishToRedis('broadcast', { key: message.rid, funcName: 'notifyRoom', eventName: 'deleteMessage', value: { _id: message._id } });
+		publishToRedis(`room-${message.rid}`, { broadcast: true, key: message.rid, funcName: 'notifyRoom', eventName: 'deleteMessage', value: { _id: message._id } });
 	}
 
 	if (Apps && Apps.isLoaded()) {
