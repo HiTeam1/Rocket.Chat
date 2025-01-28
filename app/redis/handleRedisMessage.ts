@@ -8,10 +8,11 @@ interface IRedisHandlers {
 	rocketchat_subscription: Function;
 	rocketchat_room: Function;
 	rocketchat_settings: Function;
+	rocketchat_roles: Function;
 	users: Function;
 }
 
-type broadcastMsg = {
+export type BroadcastMsg = {
 	broadcast?: boolean;
 	key?: string;
 	funcName: string;
@@ -27,11 +28,12 @@ type RedisMsg = {
 export const redisMessageHandlers: Partial<IRedisHandlers> = {};
 
 redis.on('message', (channel: string, msg: string) => {
-	const message = superjson.parse(msg) as broadcastMsg | RedisMsg;
+	const message = superjson.parse(msg) as BroadcastMsg | RedisMsg;
 
 	let handler;
 	if (channel === 'broadcast' || message?.broadcast) {
-		const data = message as broadcastMsg;
+		// TODO-Hi: change pubsubAdapter to emit events only for the current server clients, without broadcasting to all servers
+		const data = message as BroadcastMsg;
 		Notifications.pubsubAdapter(data.key, data.eventName, data.funcName, data.value);
 	} else {
 		const { ns } = message as RedisMsg;

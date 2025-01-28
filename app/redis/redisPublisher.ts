@@ -1,9 +1,11 @@
 import Redis from 'ioredis';
+import superjson from 'superjson';
 
 import { settings } from '../settings/server';
+
 import './settings';
-// import { stringify } from 'flatted';
-import superjson from 'superjson';
+
+import { BroadcastMsg } from './handleRedisMessage';
 
 
 const redis = new Redis({
@@ -14,7 +16,7 @@ const redis = new Redis({
 	autoResubscribe: true,
 	maxRetriesPerRequest: 3,
 });
-//vrfg
+
 console.log('Running redis startup');
 
 redis.on('connect', () => {
@@ -25,6 +27,6 @@ redis.on('error', (err) => {
 	console.error('Redis error', err);
 });
 
-export const publishToRedis = (channel: string, message: object) => {
-    redis.publish(channel, superjson.stringify(message));
-}
+export const publishToRedis = (channel: string, message: object | BroadcastMsg): void => {
+	redis.publish(channel, superjson.stringify(message));
+};
