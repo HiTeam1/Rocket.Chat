@@ -1,15 +1,15 @@
 import { Meteor } from 'meteor/meteor';
 import { Random } from 'meteor/random';
 import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
-import _ from 'underscore';
 import moment from 'moment';
+import _ from 'underscore';
 
 import { hasPermission } from '../../../authorization';
 import { callbacks } from '../../../callbacks';
-import { Notifications } from '../../../notifications';
 import { Users } from '../../../models';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
-callbacks.add('beforeSaveMessage', function(message) {
+callbacks.add('beforeSaveMessage', function (message) {
 	// If the message was edited, or is older than 60 seconds (imported)
 	// the notifications will be skipped, so we can also skip this validation
 	if (message.editedAt || (message.ts && Math.abs(moment(message.ts).diff()) > 60000)) {
@@ -26,11 +26,17 @@ callbacks.add('beforeSaveMessage', function(message) {
 
 			// Add a notification to the chat, informing the user that this
 			// action is not allowed.
-			Notifications.notifyUser(message.u._id, 'message', {
-				_id: Random.id(),
-				rid: message.rid,
-				ts: new Date(),
-				msg: TAPi18n.__('error-action-not-allowed', { action }, language),
+			publishToRedis(`user-${message.u._id}`, {
+				broadcast: true,
+				key: message.u._id,
+				funcName: 'notifyUser',
+				eventName: 'message',
+				value: {
+					_id: Random.id(),
+					rid: message.rid,
+					ts: new Date(),
+					msg: TAPi18n.__('error-action-not-allowed', { action }, language),
+				},
 			});
 
 			// Also throw to stop propagation of 'sendMessage'.

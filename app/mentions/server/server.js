@@ -3,11 +3,11 @@ import { Random } from 'meteor/random';
 import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
 import _ from 'underscore';
 
-import MentionsServer from './Mentions';
-import { settings } from '../../settings';
 import { callbacks } from '../../callbacks';
-import { Notifications } from '../../notifications';
-import { Users, Subscriptions, Rooms } from '../../models';
+import { Rooms, Subscriptions, Users } from '../../models';
+import { settings } from '../../settings';
+import MentionsServer from './Mentions';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 const mention = new MentionsServer({
 	pattern: () => settings.get('UTF8_Names_Validation'),
@@ -21,12 +21,18 @@ const mention = new MentionsServer({
 		const { language } = this.getUser(sender._id);
 		const msg = TAPi18n.__('Group_mentions_disabled_x_members', { total: this.messageMaxAll }, language);
 
-		Notifications.notifyUser(sender._id, 'message', {
-			_id: Random.id(),
+		publishToRedis(`user-${sender._id}`, {
+			broadcast: true,
 			rid,
-			ts: new Date(),
-			msg,
-			groupable: false,
+			funcName: 'notifyUser',
+			eventName: 'message',
+			value: {
+				_id: Random.id(),
+				rid,
+				ts: new Date(),
+				msg,
+				groupable: false,
+			},
 		});
 
 		// Also throw to stop propagation of 'sendMessage'.

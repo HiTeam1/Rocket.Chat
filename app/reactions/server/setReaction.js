@@ -3,12 +3,12 @@ import { Random } from 'meteor/random';
 import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
 import _ from 'underscore';
 
-import { Messages, EmojiCustom, Rooms } from '../../models';
-import { Notifications } from '../../notifications';
+import { hasPermission } from '../../authorization/server/functions/hasPermission';
 import { callbacks } from '../../callbacks';
 import { emoji } from '../../emoji';
 import { isTheLastMessage, msgStream } from '../../lib';
-import { hasPermission } from '../../authorization/server/functions/hasPermission';
+import { EmojiCustom, Messages, Rooms } from '../../models';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 const removeUserReaction = (message, reaction, username) => {
 	message.reactions[reaction].usernames.splice(message.reactions[reaction].usernames.indexOf(username), 1);
@@ -19,7 +19,7 @@ const removeUserReaction = (message, reaction, username) => {
 };
 
 async function setReaction(room, user, message, reaction, shouldReact) {
-	reaction = `:${ reaction.replace(/:/g, '') }:`;
+	reaction = `:${reaction.replace(/:/g, '')}:`;
 
 	if (!emoji.list[reaction] && EmojiCustom.findByNameOrAlias(reaction).count() === 0) {
 		throw new Meteor.Error('error-not-allowed', 'Invalid emoji provided.', { method: 'setReaction' });
@@ -84,7 +84,7 @@ async function setReaction(room, user, message, reaction, shouldReact) {
 	msgStream.emit(message.rid, message);
 }
 
-export const executeSetReaction = async function(reaction, messageId, shouldReact) {
+export const executeSetReaction = async function (reaction, messageId, shouldReact) {
 	const user = Meteor.user();
 
 	if (!user) {
@@ -112,11 +112,17 @@ Meteor.methods({
 			return Promise.await(executeSetReaction(reaction, messageId, shouldReact));
 		} catch (e) {
 			if (e.error === 'error-not-allowed' && e.reason && e.details && e.details.rid) {
-				Notifications.notifyUser(Meteor.userId(), 'message', {
-					_id: Random.id(),
-					rid: e.details.rid,
-					ts: new Date(),
-					msg: e.reason,
+				publishToRedis(`user-${Meteor.userId()}`, {
+					broadcast: true,
+					key: Meteor.userId(),
+					funcName: 'notifyUser',
+					eventName: 'message',
+					value: {
+						_id: Random.id(),
+						rid: e.details.rid,
+						ts: new Date(),
+						msg: e.reason,
+					},
 				});
 
 				return false;
