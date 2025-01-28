@@ -55,7 +55,7 @@ export class AppMessageBridge {
 		publishToRedis(`user-${user.id}`, {
 			broadcast: true,
 			key: user.id,
-			funcName: 'notifyUser',
+			funcName: 'notifyUserInThisInstance',
 			eventName: 'message',
 			value: {
 				...msg,
@@ -89,7 +89,7 @@ export class AppMessageBridge {
 				publishToRedis(`user-${_id}`, {
 					broadcast: true,
 					key: _id,
-					funcName: 'notifyUser',
+					funcName: 'notifyUserInThisInstance',
 					eventName: 'message',
 					value: rmsg,
 				}),

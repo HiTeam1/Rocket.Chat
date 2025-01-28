@@ -53,7 +53,7 @@ Meteor.methods({
 			publishToRedis(`user-${userId}`, {
 				broadcast: true,
 				key: userId,
-				funcName: 'notifyUser',
+				funcName: 'notifyUserInThisInstance',
 				eventName: 'webdav',
 				value: {
 					type: 'changed',
@@ -105,7 +105,7 @@ Meteor.methods({
 			publishToRedis(`user-${userId}`, {
 				broadcast: true,
 				key: userId,
-				funcName: 'notifyUser',
+				funcName: 'notifyUserInThisInstance',
 				eventName: 'webdav',
 				value: {
 					type: 'changed',

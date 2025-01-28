@@ -40,7 +40,7 @@ export function notifyAudioUser(userId, message, room) {
 	publishToRedis(`user-${userId}`, {
 		broadcast: true,
 		key: userId,
-		funcName: 'notifyUser',
+		funcName: 'notifyUserInThisInstance',
 		eventName: 'audioNotification',
 		value: {
 			payload: {

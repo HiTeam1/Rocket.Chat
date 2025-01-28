@@ -33,7 +33,7 @@ function inviteAll(type) {
 			return publishToRedis(`room-${item.rid}`, {
 				broadcast: true,
 				key: userId,
-				funcName: 'notifyUser',
+				funcName: 'notifyUserInThisInstance',
 				eventName: 'message',
 				value: {
 					_id: Random.id(),
@@ -61,7 +61,7 @@ function inviteAll(type) {
 				publishToRedis(`room-${item.rid}`, {
 					broadcast: true,
 					key: userId,
-					funcName: 'notifyUser',
+					funcName: 'notifyUserInThisInstance',
 					eventName: 'message',
 					value: {
 						_id: Random.id(),
@@ -82,7 +82,7 @@ function inviteAll(type) {
 			return publishToRedis(`room-${item.rid}`, {
 				broadcast: true,
 				key: userId,
-				funcName: 'notifyUser',
+				funcName: 'notifyUserInThisInstance',
 				eventName: 'message',
 				value: {
 					_id: Random.id(),
@@ -96,7 +96,7 @@ function inviteAll(type) {
 			publishToRedis(`room-${item.rid}`, {
 				broadcast: true,
 				key: userId,
-				funcName: 'notifyUser',
+				funcName: 'notifyUserInThisInstance',
 				eventName: 'message',
 				value: {
 					_id: Random.id(),

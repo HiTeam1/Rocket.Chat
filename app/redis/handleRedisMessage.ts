@@ -32,7 +32,6 @@ redis.on('message', (channel: string, msg: string) => {
 
 	let handler;
 	if (channel === 'broadcast' || message?.broadcast) {
-		// TODO-Hi: change pubsubAdapter to emit events only for the current server clients, without broadcasting to all servers
 		const data = message as BroadcastMsg;
 		Notifications.pubsubAdapter(data.key, data.eventName, data.funcName, data.value);
 	} else {

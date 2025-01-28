@@ -32,7 +32,7 @@ function Hide(command, param, item) {
 			return publishToRedis(`room-${item.rid}`, {
 				broadcast: true,
 				key: Meteor.userId(),
-				funcName: 'notifyUser',
+				funcName: 'notifyUserInThisInstance',
 				eventName: 'message',
 				value: {
 					_id: Random.id(),
@@ -50,7 +50,7 @@ function Hide(command, param, item) {
 			return publishToRedis(`room-${item.rid}`, {
 				broadcast: true,
 				key: Meteor.userId(),
-				funcName: 'notifyUser',
+				funcName: 'notifyUserInThisInstance',
 				eventName: 'message',
 				value: {
 					_id: Random.id(),
@@ -71,7 +71,7 @@ function Hide(command, param, item) {
 			return publishToRedis(`room-${item.rid}`, {
 				broadcast: true,
 				key: Meteor.userId(),
-				funcName: 'notifyUser',
+				funcName: 'notifyUserInThisInstance',
 				eventName: 'message',
 				value: {
 					_id: Random.id(),

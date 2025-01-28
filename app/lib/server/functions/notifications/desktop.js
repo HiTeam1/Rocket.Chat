@@ -26,7 +26,7 @@ export function notifyDesktopUser({
 	publishToRedis(`user-${userId}`, {
 		broadcast: true,
 		key: userId,
-		funcName: 'notifyUser',
+		funcName: 'notifyUserInThisInstance',
 		eventName: 'notification',
 		value: {
 			title,

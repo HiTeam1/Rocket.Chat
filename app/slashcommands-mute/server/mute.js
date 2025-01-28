@@ -26,7 +26,7 @@ slashCommands.add('mute', function Mute(command, params, item) {
 		publishToRedis(`room-${item.rid}`, {
 			broadcast: true,
 			key: userId,
-			funcName: 'notifyUser',
+			funcName: 'notifyUserInThisInstance',
 			eventName: 'message',
 			value: {
 				_id: Random.id(),
@@ -47,7 +47,7 @@ slashCommands.add('mute', function Mute(command, params, item) {
 		publishToRedis(`room-${item.rid}`, {
 			broadcast: true,
 			key: userId,
-			funcName: 'notifyUser',
+			funcName: 'notifyUserInThisInstance',
 			eventName: 'message',
 			value: {
 				_id: Random.id(),

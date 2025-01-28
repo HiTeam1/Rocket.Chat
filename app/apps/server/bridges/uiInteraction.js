@@ -17,7 +17,7 @@ export class UiInteractionBridge {
 		publishToRedis(`user-${user.id}`, {
 			broadcast: true,
 			key: user.id,
-			funcName: 'notifyUser',
+			funcName: 'notifyUserInThisInstance',
 			eventName: 'uiInteraction',
 			value: interaction,
 		});

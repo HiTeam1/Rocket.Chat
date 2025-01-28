@@ -29,7 +29,7 @@ callbacks.add('beforeSaveMessage', function (message) {
 			publishToRedis(`user-${message.u._id}`, {
 				broadcast: true,
 				key: message.u._id,
-				funcName: 'notifyUser',
+				funcName: 'notifyUserInThisInstance',
 				eventName: 'message',
 				value: {
 					_id: Random.id(),

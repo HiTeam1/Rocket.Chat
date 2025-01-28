@@ -83,7 +83,7 @@ export function executeSendMessage(uid, message) {
 		publishToRedis(`room-${rid}`, {
 			broadcast: true,
 			key: uid,
-			funcName: 'notifyUser',
+			funcName: 'notifyUserInThisInstance',
 			eventName: 'message',
 			value: {
 				_id: Random.id(),

@@ -14,7 +14,7 @@ const MAX_FILE_SIZE = 5242880;
 const notifyAgent = (userId, rid, msg) => publishToRedis(`user-${userId}`, {
 	broadcast: true,
 	key: userId,
-	funcName: 'notifyUser',
+	funcName: 'notifyUserInThisInstance',
 	eventName: 'message',
 	value: {
 		_id: Random.id(),

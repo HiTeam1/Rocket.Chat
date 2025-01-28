@@ -39,7 +39,7 @@ function Create(command, params, item) {
 		publishToRedis(`room-${item.rid}`, {
 			broadcast: true,
 			key: Meteor.userId(),
-			funcName: 'notifyUser',
+			funcName: 'notifyUserInThisInstance',
 			eventName: 'message',
 			value: {
 				_id: Random.id(),

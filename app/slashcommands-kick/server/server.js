@@ -25,7 +25,7 @@ const Kick = function (command, params, { rid }) {
 		return publishToRedis(`room-${rid}`, {
 			broadcast: true,
 			key: userId,
-			funcName: 'notifyUser',
+			funcName: 'notifyUserInThisInstance',
 			eventName: 'message',
 			value: {
 				_id: Random.id(),
@@ -44,7 +44,7 @@ const Kick = function (command, params, { rid }) {
 		return publishToRedis(`room-${rid}`, {
 			broadcast: true,
 			key: userId,
-			funcName: 'notifyUser',
+			funcName: 'notifyUserInThisInstance',
 			eventName: 'message',
 			value: {
 				_id: Random.id(),

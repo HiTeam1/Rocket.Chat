@@ -1,11 +1,12 @@
 /* eslint no-multi-spaces: 0 */
 import { Meteor } from 'meteor/meteor';
 
-import { Roles, Permissions, Settings } from '../../models/server';
+import { Permissions, Roles, Settings } from '../../models/server';
 import { settings } from '../../settings/server';
-import { getSettingPermissionId, CONSTANTS } from '../lib';
+import { CONSTANTS, getSettingPermissionId } from '../lib';
 import { clearCache } from './functions/hasPermission';
 import { redisMessageHandlers } from '/app/redis/handleRedisMessage';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 Meteor.startup(function () {
 	// Note:
@@ -290,7 +291,7 @@ Meteor.startup(function () {
 		clearCache();
 	};
 
-	const handleRolesRedis = (data) => handleRole(data.diff);
+	const handleRolesRedis = (data) => handleRoles(data.diff);
 
 	if (settings.get('Use_Oplog_As_Real_Time')) {
 		Roles.on('change', ({ diff }) => {
@@ -298,6 +299,7 @@ Meteor.startup(function () {
 		});
 	} else {
 		Roles.on('change', ({ diff }) => {
+			console.log("roles changed");
 			const newdata = {
 				...diff,
 				ns: 'rocketchat_roles',

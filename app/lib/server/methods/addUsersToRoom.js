@@ -74,7 +74,7 @@ Meteor.methods({
 				addUserToRoom(data.rid, newUser, user);
 			} else {
 				publishToRedis(`room-${data.rid}`, {
-					broadcast: true, key: userId, funcName: 'notifyUser', eventName: 'message', value: {
+					broadcast: true, key: userId, funcName: 'notifyUserInThisInstance', eventName: 'message', value: {
 						_id: Random.id(),
 						rid: data.rid,
 						ts: new Date(),

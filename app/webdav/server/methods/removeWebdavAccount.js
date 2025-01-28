@@ -17,7 +17,7 @@ Meteor.methods({
 			publishToRedis(`user-${Meteor.userId()}`, {
 				broadcast: true,
 				key: Meteor.userId(),
-				funcName: 'notifyUser',
+				funcName: 'notifyUserInThisInstance',
 				eventName: 'webdav',
 				value: {
 					type: 'removed',

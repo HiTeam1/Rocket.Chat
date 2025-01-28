@@ -24,7 +24,7 @@ const mention = new MentionsServer({
 		publishToRedis(`user-${sender._id}`, {
 			broadcast: true,
 			rid,
-			funcName: 'notifyUser',
+			funcName: 'notifyUserInThisInstance',
 			eventName: 'message',
 			value: {
 				_id: Random.id(),
