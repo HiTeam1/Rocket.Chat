@@ -1,4 +1,4 @@
-import { Notifications } from '../../../notifications/server';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 export class UiInteractionBridge {
 	constructor(orch) {
@@ -6,7 +6,7 @@ export class UiInteractionBridge {
 	}
 
 	async notifyUser(user, interaction, appId) {
-		this.orch.debugLog(`The App ${ appId } is sending an interaction to user.`);
+		this.orch.debugLog(`The App ${appId} is sending an interaction to user.`);
 
 		const app = this.orch.getManager().getOneById(appId);
 
@@ -14,6 +14,12 @@ export class UiInteractionBridge {
 			throw new Error('Invalid app provided');
 		}
 
-		Notifications.notifyUser(user.id, 'uiInteraction', interaction);
+		publishToRedis(`user-${user.id}`, {
+			broadcast: true,
+			key: user.id,
+			funcName: 'notifyUser',
+			eventName: 'uiInteraction',
+			value: interaction,
+		});
 	}
 }
