@@ -32,37 +32,31 @@ Meteor.startup(function() {
 		}
 	}
 
-	const handleMessage = (clientAction, data, id) => {
+	const handleMessage = ({clientAction, data, id}) => {
 		switch (clientAction) {
 			case 'inserted':
 			case 'updated':
-				const message = data || Messages.findOne({ _id: id });
-				publishMessage(clientAction, message);
-
+				publishMessage(clientAction, data);
 				break;
 		}
 	};
 
-	const redisMessageHandle = (data) => {
-		return handleMessage(data.clientAction, data, data._id);
-	};
-
 
 	if (settings.get('Use_Oplog_As_Real_Time')) {
-		Messages.on('change', function({ clientAction, id, data/* , oplog*/ }) {
-			handleMessage(clientAction, data, id);
+		Messages.on('change', function(oplog) {
+			handleMessage(oplog);
 		});
 	} else {
-		console.log('redis on message');
-		Messages.on('change', function({ clientAction, id, data/* , oplog*/ }) {
-			const newdata = {
-				...data,
-				ns: 'rocketchat_message', 
-				clientAction,
-			}
-			publishToRedis(`room-${data.rid}`, newdata);
-		});
+		// console.log('redis on message');
+		// Messages.on('change', function({ clientAction, id, data/* , oplog*/ }) {
+		// 	const newdata = {
+		// 		...data,
+		// 		ns: 'rocketchat_message', 
+		// 		clientAction,
+		// 	}
+		// 	publishToRedis(`room-${data.rid}`, newdata);
+		// });
 	//	redis.on('message', redisMessageHandle);
 	}
-	redisMessageHandlers['rocketchat_message'] = redisMessageHandle;
+	redisMessageHandlers['rocketchat_message'] = handleMessage;
 });

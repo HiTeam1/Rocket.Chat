@@ -282,7 +282,7 @@ Meteor.startup(function () {
 
 	settings.onload('*', createPermissionForAddedSetting);
 
-	const handleRoles = (diff) => {
+	const handleRoles = ({diff}) => {
 		if (diff && Object.keys(diff).length === 1 && diff._updatedAt) {
 			// avoid useless changes
 			return;
@@ -290,20 +290,19 @@ Meteor.startup(function () {
 		clearCache();
 	};
 
-	const handleRolesRedis = (data) => handleRole(data.diff);
 
 	if (settings.get('Use_Oplog_As_Real_Time')) {
-		Roles.on('change', ({ diff }) => {
-			handleRoles(diff);
+		Roles.on('change', (oplog) => {
+			handleRoles(oplog);
 		});
 	} else {
-		Roles.on('change', ({ diff }) => {
-			const newdata = {
-				...diff,
-				ns: 'rocketchat_roles',
-			};
-			publishToRedis(`all`, newdata);
-		});
+		// Roles.on('change', ({ diff }) => {
+		// 	const newdata = {
+		// 		...diff,
+		// 		ns: 'rocketchat_roles',
+		// 	};
+		// 	publishToRedis(`all`, newdata);
+		// });
 	}
-	redisMessageHandlers['rocketchat_roles'] = handleRolesRedis;
+	redisMessageHandlers['rocketchat_roles'] = handleRoles;
 });

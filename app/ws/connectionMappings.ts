@@ -37,9 +37,7 @@ const decreaseConnectionIdFromChannelBindCount = async (channel: string, connect
 	const release = await acquireLock(channel);
 	try {
 		const listeningConnections = channelListeners.get(channel);
-		console.log('listeners ', listeningConnections, channel, connectionId);
 		if (listeningConnections?.size === 1) {
-			console.log(`Unsubscribing to channel: ${ channel }`);
 			channelListeners.delete(channel);
 			redis.unsubscribe(channel);
 		} else {
@@ -52,7 +50,6 @@ const decreaseConnectionIdFromChannelBindCount = async (channel: string, connect
 
 const removeConnectionIdBinding = (connectionId: string): void => {
 	const connectionChannels = connectionToChannels.get(connectionId);
-	console.log('connectionChannels: ', connectionChannels);
 	connectionChannels?.forEach(async (channel: string) => {
 		decreaseConnectionIdFromChannelBindCount(channel, connectionId);
 	});
@@ -109,10 +106,10 @@ const addChannelOnCreate = async (channel: string, userId: string): Promise<void
 	}
 };
 
-setInterval(() => {
-	console.log('channelListeners: ', channelListeners);
-	console.log('connectionToChannels: ', connectionToChannels);
-	console.log('userConnections: ', userConnections);
-}, 5000);
+// setInterval(() => {
+// 	console.log('channelListeners: ', channelListeners);
+// 	console.log('connectionToChannels: ', connectionToChannels);
+// 	console.log('userConnections: ', userConnections);
+// }, 5000);
 
 export { addChannelOnCreate, decreaseChannelListenerCountOnUser, removeConnectionId, updateMappingsOnSub };

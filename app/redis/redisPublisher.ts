@@ -26,5 +26,6 @@ redis.on('error', (err) => {
 });
 
 export const publishToRedis = (channel: string, message: object) => {
+	return
     redis.publish(channel, superjson.stringify(message));
 }

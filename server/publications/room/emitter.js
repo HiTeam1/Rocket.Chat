@@ -13,22 +13,7 @@ const getSubscriptions = (id) => {
 	return Subscriptions.trashFind({ rid: id }, { fields });
 };
 
-const handleRoom = (clientAction, id, data) => {
-	switch (clientAction) {
-		case 'updated':
-		case 'inserted':
-			// Override data cuz we do not publish all fields
-			data = data || Rooms.findOneById(id, { fields });
-			break;
-
-		case 'removed':
-			data = { _id: id };
-			break;
-	}
-
-	if (!data) {
-		return;
-	}
+const handleRoom = Meteor.bindEnvironment(({clientAction, id, data}) => {
 	if (clientAction === 'removed') {
 		getSubscriptions(id).forEach(({ u }) => {
 			Notifications.notifyUserInThisInstance(
@@ -41,25 +26,23 @@ const handleRoom = (clientAction, id, data) => {
 	}
 
 	Notifications.streamUser.__emit(id, clientAction, data);
-
 	emitRoomDataEvent(id, data);
-};
+});
 
-const redisRoomHandle = (data) => handleRoom(data.clientAction, data._id, data);
 if (settings.get('Use_Oplog_As_Real_Time')) {
-	Rooms.on('change', ({ clientAction, id, data }) => {
-		handleRoom(clientAction, id, data);
+	Rooms.on('change', (oplog) => {
+		handleRoom(oplog);
 	});
 } else {
-	Rooms.on('change', ({ clientAction, id, data }) => {
-		data = data || Rooms.findOneById(id, { fields });
-		const newdata = {
-			...data,
-			ns: 'rocketchat_room',
-			clientAction,
-		};
-		publishToRedis(`room-${ id }`, newdata);
-	});
+	// Rooms.on('change', ({ clientAction, id, data }) => {
+	// 	data = data || Rooms.findOneById(id, { fields });
+	// 	const newdata = {
+	// 		...data,
+	// 		ns: 'rocketchat_room',
+	// 		clientAction,
+	// 	};
+	// 	publishToRedis(`room-${ id }`, newdata);
+	// });
 }
 
-redisMessageHandlers.rocketchat_room = redisRoomHandle;
+redisMessageHandlers.rocketchat_room = handleRoom;

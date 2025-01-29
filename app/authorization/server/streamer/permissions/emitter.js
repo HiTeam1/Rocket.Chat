@@ -7,21 +7,10 @@ import { settings } from '/app/settings/server';
 import { publishToRedis } from '/app/redis/redisPublisher';
 import { redisMessageHandlers } from '/app/redis/handleRedisMessage';
 
-const handlePermissions = (clientAction, id, data, diff) => {
+const handlePermissions = ({clientAction, id, data, diff}) => {
 	if (diff && Object.keys(diff).length === 1 && diff._updatedAt) {
-		// avoid useless changes
 		return;
-	}
-	switch (clientAction) {
-		case 'updated':
-		case 'inserted':
-			data = data || Permissions.findOneById(id);
-			break;
-
-		case 'removed':
-			data = { _id: id };
-			break;
-	}
+	}	
 
 	clearCache();
 
@@ -44,22 +33,19 @@ const handlePermissions = (clientAction, id, data, diff) => {
 	}
 };
 
-const handlePermissionsRedis = (data) =>
-	handlePermissions(data.clientAction, data._id, data, data.diff);
-
 if (settings.get('Use_Oplog_As_Real_Time')) {
-	Permissions.on('change', ({ clientAction, id, data, diff }) => {
-		handlePermissions(clientAction, id, data, diff);
+	Permissions.on('change', (oplog) => {
+		handlePermissions(oplog);
 	});
 } else {
-	Permissions.on('change', ({ clientAction, id, data, diff }) => {
-		data = data || Permissions.findOneById(id);
-		const newdata = {
-			...data,
-			ns: 'rocketchat_permissions',
-			clientAction,
-		};
-		publishToRedis(`all`, newdata);
-	});
+	// Permissions.on('change', ({ clientAction, id, data, diff }) => {
+	// 	data = data || Permissions.findOneById(id);
+	// 	const newdata = {
+	// 		...data,
+	// 		ns: 'rocketchat_permissions',
+	// 		clientAction,
+	// 	};
+	// 	publishToRedis(`all`, newdata);
+	// });
 }
-redisMessageHandlers['rocketchat_permissions'] = handlePermissionsRedis;
+redisMessageHandlers['rocketchat_permissions'] = handlePermissions;
