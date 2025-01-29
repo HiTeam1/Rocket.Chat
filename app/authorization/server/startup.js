@@ -299,7 +299,6 @@ Meteor.startup(function () {
 		});
 	} else {
 		Roles.on('change', ({ diff }) => {
-			console.log("roles changed");
 			const newdata = {
 				...diff,
 				ns: 'rocketchat_roles',

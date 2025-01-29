@@ -9,7 +9,7 @@ let hasSubbedToAllChannel = false;
 const redis = new Redis({
 	host: settings.get('Redis_url') as string, // Redis server hostname
 	port: 6379, // Redis server port
-	password: 'hichataviv', // Redis server password (if any)
+	// password: 'your_password', // Redis server password (if any)
 	db: 0, // Redis database index
 	autoResubscribe: true,
 	maxRetriesPerRequest: 3,
