@@ -1,5 +1,6 @@
 import superjson from 'superjson';
 
+import { Notifications } from '../notifications/server';
 import redis from './redis';
 
 interface IRedisHandlers {
@@ -7,17 +8,36 @@ interface IRedisHandlers {
 	rocketchat_subscription: Function;
 	rocketchat_room: Function;
 	rocketchat_settings: Function;
+	rocketchat_roles: Function;
 	users: Function;
+}
+
+export type BroadcastMsg = {
+	broadcast?: boolean;
+	key?: string;
+	funcName: string;
+	eventName: string;
+	value: Record<string, any>;
+}
+
+type RedisMsg = {
+	broadcast?: boolean;
+	ns: keyof IRedisHandlers;
 }
 
 export const redisMessageHandlers: Partial<IRedisHandlers> = {};
 
 redis.on('message', (channel: string, msg: string) => {
-	console.log('new message from redis');
+	const message = superjson.parse(msg) as BroadcastMsg | RedisMsg;
 
-	const message = superjson.parse(msg);
-	const { ns } = message as { ns: keyof IRedisHandlers};
-	const handler = redisMessageHandlers[ns];
+	let handler;
+	if (channel === 'broadcast' || message?.broadcast) {
+		const data = message as BroadcastMsg;
+		Notifications.pubsubAdapter(data.key, data.eventName, data.funcName, data.value);
+	} else {
+		const { ns } = message as RedisMsg;
+		handler = redisMessageHandlers[ns];
+	}
 
 	if (handler) {
 		return handler(message);

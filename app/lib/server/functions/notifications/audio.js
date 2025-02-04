@@ -1,6 +1,6 @@
 import { metrics } from '../../../../metrics';
 import { settings } from '../../../../settings';
-import { Notifications } from '../../../../notifications';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 export function shouldNotifyAudio({
 	disableAllMessageNotifications,
@@ -37,13 +37,19 @@ export function shouldNotifyAudio({
 
 export function notifyAudioUser(userId, message, room) {
 	metrics.notificationsSent.inc({ notification_type: 'audio' });
-	Notifications.notifyUser(userId, 'audioNotification', {
-		payload: {
-			_id: message._id,
-			rid: message.rid,
-			sender: message.u,
-			type: room.t,
-			name: room.name,
+	publishToRedis(`user-${userId}`, {
+		broadcast: true,
+		key: userId,
+		funcName: 'notifyUserInThisInstance',
+		eventName: 'audioNotification',
+		value: {
+			payload: {
+				_id: message._id,
+				rid: message.rid,
+				sender: message.u,
+				type: room.t,
+				name: room.name,
+			},
 		},
 	});
 }

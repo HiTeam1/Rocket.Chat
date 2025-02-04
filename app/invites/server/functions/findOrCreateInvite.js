@@ -2,18 +2,17 @@ import { Meteor } from 'meteor/meteor';
 import { Random } from 'meteor/random';
 
 import { hasPermission } from '../../../authorization';
-import { Notifications } from '../../../notifications';
-import { Invites, Subscriptions, Rooms } from '../../../models/server';
+import { Invites, Rooms, Subscriptions } from '../../../models/server';
 import { settings } from '../../../settings';
 import { getURL } from '../../../utils/lib/getURL';
-import { roomTypes, RoomMemberActions } from '../../../utils/server';
+import { RoomMemberActions, roomTypes } from '../../../utils/server';
 
 function getInviteUrl(invite) {
 	const { _id } = invite;
 
 	const useDirectLink = settings.get('Accounts_Registration_InviteUrlType') === 'direct';
 
-	return getURL(`invite/${ _id }`, {
+	return getURL(`invite/${_id}`, {
 		full: useDirectLink,
 		cloud: !useDirectLink,
 		cloud_route: 'invite',
@@ -87,7 +86,6 @@ export const findOrCreateInvite = (userId, invite) => {
 	};
 
 	Invites.create(createInvite);
-	Notifications.notifyUser(userId, 'updateInvites', { invite: createInvite });
 
 	createInvite.url = getInviteUrl(createInvite);
 	return createInvite;

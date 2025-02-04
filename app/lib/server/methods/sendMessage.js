@@ -1,19 +1,19 @@
-import { Meteor } from 'meteor/meteor';
 import { check } from 'meteor/check';
+import { Meteor } from 'meteor/meteor';
 import { Random } from 'meteor/random';
 import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
 import moment from 'moment';
 
 import { hasPermission } from '../../../authorization';
-import { metrics } from '../../../metrics';
-import { settings } from '../../../settings';
-import { Notifications } from '../../../notifications';
-import { messageProperties } from '../../../ui-utils';
-import { Users, Messages } from '../../../models';
-import { sendMessage } from '../functions';
-import { RateLimiter } from '../lib';
 import { canSendMessage } from '../../../authorization/server';
 import { SystemLogger } from '../../../logger/server';
+import { metrics } from '../../../metrics';
+import { Messages, Users } from '../../../models';
+import { settings } from '../../../settings';
+import { messageProperties } from '../../../ui-utils';
+import { sendMessage } from '../functions';
+import { RateLimiter } from '../lib';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 export function executeSendMessage(uid, message) {
 	if (message.tshow && !message.tmid) {
@@ -74,20 +74,24 @@ export function executeSendMessage(uid, message) {
 
 	try {
 		const room = canSendMessage(rid, { uid, username: user.username, type: user.type });
-
 		metrics.messagesSent.inc(); // TODO This line needs to be moved to it's proper place. See the comments on: https://github.com/RocketChat/Rocket.Chat/pull/5736
 		return sendMessage(user, message, room, false);
 	} catch (error) {
 		SystemLogger.error('Error sending message:', error);
 
 		const errorMessage = typeof error === 'string' ? error : error.error || error.message;
-		Notifications.notifyUser(uid, 'message', {
-			_id: Random.id(),
-			rid: message.rid,
-			ts: new Date(),
-			msg: TAPi18n.__(errorMessage, {}, user.language),
+		publishToRedis(`room-${rid}`, {
+			broadcast: true,
+			key: uid,
+			funcName: 'notifyUserInThisInstance',
+			eventName: 'message',
+			value: {
+				_id: Random.id(),
+				rid,
+				ts: new Date(),
+				msg: TAPi18n.__(errorMessage, {}, user.language),
+			},
 		});
-
 		if (typeof error === 'string') {
 			throw new Error(error);
 		}

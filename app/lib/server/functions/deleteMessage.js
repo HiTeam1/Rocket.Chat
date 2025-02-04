@@ -1,13 +1,14 @@
 import { Meteor } from 'meteor/meteor';
 
-import { FileUpload } from '../../../file-upload/server';
-import { settings } from '../../../settings/server';
-import { Messages, Uploads, Rooms } from '../../../models/server';
-import { Notifications } from '../../../notifications/server';
-import { callbacks } from '../../../callbacks/server';
 import { Apps } from '../../../apps/server';
+import { callbacks } from '../../../callbacks/server';
+import { FileUpload } from '../../../file-upload/server';
+import { Messages, Rooms, Uploads } from '../../../models/server';
+import { Notifications } from '../../../notifications/server';
+import { settings } from '../../../settings/server';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
-export const deleteMessage = function(message, user) {
+export const deleteMessage = function (message, user) {
 	const deletedMsg = Messages.findOneById(message._id);
 	const isThread = deletedMsg.tcount > 0;
 	const keepHistory = settings.get('Message_KeepHistory') || isThread;
@@ -55,8 +56,10 @@ export const deleteMessage = function(message, user) {
 
 	if (showDeletedStatus) {
 		Messages.setAsDeletedByIdAndUser(message._id, user);
-	} else {
+	} else if (settings.get('Use_Oplog_As_Real_Time')) {
 		Notifications.notifyRoom(message.rid, 'deleteMessage', { _id: message._id });
+	} else {
+		publishToRedis(`room-${message.rid}`, { broadcast: true, key: message.rid, funcName: 'notifyRoom', eventName: 'deleteMessage', value: { _id: message._id } });
 	}
 
 	if (Apps && Apps.isLoaded()) {

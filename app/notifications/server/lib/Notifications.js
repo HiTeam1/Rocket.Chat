@@ -1,13 +1,14 @@
 import { DDPCommon } from 'meteor/ddp-common';
 import { Meteor } from 'meteor/meteor';
 
+import { loginStream } from '/app/lib/server/lib/loginStream';
+
 import { Rooms, Subscriptions } from '../../../models/server';
 import { settings } from '../../../settings/server';
 import { WEB_RTC_EVENTS } from '../../../webrtc';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
-import { loginStream } from '/app/lib/server/lib/loginStream';
-
-const changedPayload = function(collection, id, fields) {
+const changedPayload = function (collection, id, fields) {
 	return DDPCommon.stringifyDDP({
 		msg: 'changed',
 		collection,
@@ -15,7 +16,7 @@ const changedPayload = function(collection, id, fields) {
 		fields,
 	});
 };
-const send = function(self, msg) {
+const send = function (self, msg) {
 	if (!self.socket) {
 		return;
 	}
@@ -27,7 +28,7 @@ class RoomStreamer extends Meteor.Streamer {
 		const uid = Meteor.userId();
 		if (/rooms-changed/.test(eventName)) {
 			const roomEvent = (...args) => send(publication._session, changedPayload(this.subscriptionName, 'id', {
-				eventName: `${ uid }/rooms-changed`,
+				eventName: `${uid}/rooms-changed`,
 				args,
 			}));
 			const rooms = Subscriptions.find({ 'u._id': uid }, { fields: { rid: 1 } }).fetch();
@@ -74,7 +75,7 @@ class Notifications {
 		this.streamAll.allowWrite('none');
 		this.streamLogged.allowWrite('none');
 		this.streamRoom.allowWrite('none');
-		this.streamRoomUsers.allowWrite(function(eventName, ...args) {
+		this.streamRoomUsers.allowWrite(function (eventName, ...args) {
 			const [roomId, e] = eventName.split('/');
 			// const user = Meteor.users.findOne(this.userId, {
 			// 	fields: {
@@ -90,11 +91,11 @@ class Notifications {
 		this.streamUser.allowWrite('logged');
 		this.streamAll.allowRead('all');
 		this.streamLogged.allowRead('logged');
-		this.streamRoom.allowRead(function(eventName, extraData) {
+		this.streamRoom.allowRead(function (eventName, extraData) {
 			const [roomId] = eventName.split('/');
 			const room = Rooms.findOneById(roomId);
 			if (!room) {
-				console.warn(`Invalid streamRoom eventName: "${ eventName }"`);
+				console.warn(`Invalid streamRoom eventName: "${eventName}"`);
 				return false;
 			}
 			if (room.t === 'l' && extraData && extraData.token && room.v.token === extraData.token) {
@@ -107,7 +108,7 @@ class Notifications {
 			return subscription != null;
 		});
 		this.streamRoomUsers.allowRead('none');
-		this.streamUser.allowRead(function(eventName) {
+		this.streamUser.allowRead(function (eventName) {
 			const [userId] = eventName.split('/');
 			return (this.userId != null) && this.userId === userId;
 		});
@@ -133,7 +134,7 @@ class Notifications {
 		if (this.debug === true) {
 			console.log('notifyRoom', [room, eventName, ...args]);
 		}
-		args.unshift(`${ room }/${ eventName }`);
+		args.unshift(`${room}/${eventName}`);
 		return this.streamRoom.emit.apply(this.streamRoom, args);
 	}
 
@@ -141,7 +142,7 @@ class Notifications {
 		if (this.debug === true) {
 			console.log('notifyUser', [userId, eventName, ...args]);
 		}
-		args.unshift(`${ userId }/${ eventName }`);
+		args.unshift(`${userId}/${eventName}`);
 		return this.streamUser.emit.apply(this.streamUser, args);
 	}
 
@@ -165,7 +166,7 @@ class Notifications {
 		if (this.debug === true) {
 			console.log('notifyRoomAndBroadcast', [room, eventName, ...args]);
 		}
-		args.unshift(`${ room }/${ eventName }`);
+		args.unshift(`${room}/${eventName}`);
 		return this.streamRoom.emitWithoutBroadcast.apply(this.streamRoom, args);
 	}
 
@@ -173,14 +174,25 @@ class Notifications {
 		if (this.debug === true) {
 			console.log('notifyUserAndBroadcast', [userId, eventName, ...args]);
 		}
-		args.unshift(`${ userId }/${ eventName }`);
+		args.unshift(`${userId}/${eventName}`);
 		return this.streamUser.emitWithoutBroadcast.apply(this.streamUser, args);
+	}
+
+	pubsubAdapter(key, eventName, funcName, value) {
+		if (this[funcName]) {
+			if (key) {
+				console.log(this[funcName]);
+				return this[funcName](key, eventName, value);
+			}
+
+			return this[funcName](eventName, value);
+		}
 	}
 }
 
 const notifications = new Notifications();
 
-notifications.streamRoom.allowWrite(function(eventName, username, typing, extraData) {
+notifications.streamRoom.allowWrite(function (eventName, username, typing, extraData) {
 	const [roomId, e] = eventName.split('/');
 
 	if (isNaN(e) ? e === WEB_RTC_EVENTS.WEB_RTC : parseFloat(e) === WEB_RTC_EVENTS.WEB_RTC) {
@@ -207,7 +219,9 @@ notifications.streamRoom.allowWrite(function(eventName, username, typing, extraD
 			return false;
 		}
 
-		return user[key] === username;
+		publishToRedis(`room-${roomId}`, { broadcast: true, key: roomId, funcName: 'notifyRoom', eventName: 'typing', value: [username, typing] });
+		// return user[key] === username;
+		return false;
 	}
 	return false;
 });

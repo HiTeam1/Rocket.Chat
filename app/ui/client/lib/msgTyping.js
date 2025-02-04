@@ -1,14 +1,14 @@
 import { Meteor } from 'meteor/meteor';
-import { Tracker } from 'meteor/tracker';
-import { ReactiveVar } from 'meteor/reactive-var';
 import { ReactiveDict } from 'meteor/reactive-dict';
+import { ReactiveVar } from 'meteor/reactive-var';
 import { Session } from 'meteor/session';
+import { Tracker } from 'meteor/tracker';
 import _ from 'underscore';
 
-import { settings } from '../../../settings';
 import { Notifications } from '../../../notifications';
+import { settings } from '../../../settings';
 
-const shownName = function(user) {
+const shownName = function (user) {
 	if (!user) {
 		return;
 	}
@@ -49,7 +49,7 @@ export const MsgTyping = new class {
 		if (rooms[rid]) {
 			return;
 		}
-		rooms[rid] = function(username, typing) {
+		rooms[rid] = function ([username, typing]) {
 			const user = Meteor.users.findOne(Meteor.userId(), { fields: { name: 1, username: 1 } });
 			if (username === shownName(user)) {
 				return;
@@ -57,7 +57,7 @@ export const MsgTyping = new class {
 			const users = usersTyping.get(rid) || {};
 			if (typing === true) {
 				clearTimeout(users[username]);
-				users[username] = setTimeout(function() {
+				users[username] = setTimeout(function () {
 					const u = usersTyping.get(rid);
 					delete u[username];
 					usersTyping.set(rid, u);

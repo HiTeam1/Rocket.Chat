@@ -1,8 +1,8 @@
-import { Meteor } from 'meteor/meteor';
 import { check } from 'meteor/check';
+import { Meteor } from 'meteor/meteor';
 
 import { WebdavAccounts } from '../../../models';
-import { Notifications } from '../../../notifications/server';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 Meteor.methods({
 	removeWebdavAccount(accountId) {
@@ -14,9 +14,15 @@ Meteor.methods({
 
 		const removed = WebdavAccounts.removeByUserAndId(accountId, Meteor.userId());
 		if (removed) {
-			Notifications.notifyUser(Meteor.userId(), 'webdav', {
-				type: 'removed',
-				account: { _id: accountId },
+			publishToRedis(`user-${Meteor.userId()}`, {
+				broadcast: true,
+				key: Meteor.userId(),
+				funcName: 'notifyUserInThisInstance',
+				eventName: 'webdav',
+				value: {
+					type: 'removed',
+					account: { _id: accountId },
+				},
 			});
 		}
 

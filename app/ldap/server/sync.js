@@ -1,20 +1,21 @@
 import limax from 'limax';
-import { Meteor } from 'meteor/meteor';
 import { Accounts } from 'meteor/accounts-base';
 import { SyncedCron } from 'meteor/littledata:synced-cron';
+import { Meteor } from 'meteor/meteor';
 import _ from 'underscore';
 
-import LDAP from './ldap';
 import { callbacks } from '../../callbacks/server';
 import { RocketChatFile } from '../../file';
-import { settings } from '../../settings';
-import { Notifications } from '../../notifications';
-import { Users, Roles, Rooms, Subscriptions } from '../../models';
-import { Logger } from '../../logger';
-import { _setRealName, _setUsername } from '../../lib';
-import { templateVarHandler } from '../../utils';
 import { FileUpload } from '../../file-upload';
-import { addUserToRoom, removeUserFromRoom, createRoom } from '../../lib/server/functions';
+import { _setRealName, _setUsername } from '../../lib';
+import { addUserToRoom, createRoom, removeUserFromRoom } from '../../lib/server/functions';
+import { Logger } from '../../logger';
+import { Roles, Rooms, Subscriptions, Users } from '../../models';
+import { Notifications } from '../../notifications';
+import { settings } from '../../settings';
+import { templateVarHandler } from '../../utils';
+import LDAP from './ldap';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 
 export const logger = new Logger('LDAPSync', {});
@@ -34,9 +35,9 @@ export function isUserInLDAPGroup(ldap, ldapUser, user, ldapGroup) {
 
 	const result = ldap.searchAllSync(syncUserRolesBaseDN, searchOptions);
 	if (!Array.isArray(result) || result.length === 0) {
-		logger.debug(`${ user.username } is not in ${ ldapGroup } group!!!`);
+		logger.debug(`${user.username} is not in ${ldapGroup} group!!!`);
 	} else {
-		logger.debug(`${ user.username } is in ${ ldapGroup } group.`);
+		logger.debug(`${user.username} is in ${ldapGroup} group.`);
 		return true;
 	}
 
@@ -65,7 +66,7 @@ export function getLdapUsername(ldapUser) {
 	const usernameField = settings.get('LDAP_Username_Field');
 
 	if (usernameField.indexOf('#{') > -1) {
-		return usernameField.replace(/#{(.+?)}/g, function(match, field) {
+		return usernameField.replace(/#{(.+?)}/g, function (match, field) {
 			return ldapUser[field];
 		});
 	}
@@ -115,18 +116,18 @@ export function getDataToSyncUserData(ldapUser, user) {
 		const whitelistedUserFields = ['email', 'name', 'customFields'];
 		const fieldMap = JSON.parse(syncUserDataFieldMap);
 		const emailList = [];
-		_.map(fieldMap, function(userField, ldapField) {
+		_.map(fieldMap, function (userField, ldapField) {
 			switch (userField) {
 				case 'email':
 					if (!ldapUser.hasOwnProperty(ldapField)) {
-						logger.debug(`user does not have attribute: ${ ldapField }`);
+						logger.debug(`user does not have attribute: ${ldapField}`);
 						return;
 					}
 
 					const verified = settings.get('Accounts_Verify_Email_For_External_Accounts');
 
 					if (_.isObject(ldapUser[ldapField])) {
-						_.map(ldapUser[ldapField], function(item) {
+						_.map(ldapUser[ldapField], function (item) {
 							emailList.push({ address: item, verified });
 						});
 					} else {
@@ -138,7 +139,7 @@ export function getDataToSyncUserData(ldapUser, user) {
 					const [outerKey, innerKeys] = userField.split(/\.(.+)/);
 
 					if (!_.find(whitelistedUserFields, (el) => el === outerKey)) {
-						logger.debug(`user attribute not whitelisted: ${ userField }`);
+						logger.debug(`user attribute not whitelisted: ${userField}`);
 						return;
 					}
 
@@ -153,7 +154,7 @@ export function getDataToSyncUserData(ldapUser, user) {
 						}
 
 						if (!getPropertyValue(customFieldsMeta, innerKeys)) {
-							logger.debug(`user attribute does not exist: ${ userField }`);
+							logger.debug(`user attribute does not exist: ${userField}`);
 							return;
 						}
 					}
@@ -177,7 +178,7 @@ export function getDataToSyncUserData(ldapUser, user) {
 							}
 							return obj[currKey];
 						}, userData);
-						logger.debug(`user.${ userField } changed to: ${ tmpLdapField }`);
+						logger.debug(`user.${userField} changed to: ${tmpLdapField}`);
 					}
 			}
 		});
@@ -229,7 +230,7 @@ export function mapLdapGroupsToUserRoles(ldap, ldapUser, user) {
 	try {
 		fieldMap = JSON.parse(syncUserRolesFieldMap);
 	} catch (err) {
-		logger.error(`Unexpected error : ${ err.message }`);
+		logger.error(`Unexpected error : ${err.message}`);
 		return [];
 	}
 	if (!fieldMap) {
@@ -247,11 +248,11 @@ export function mapLdapGroupsToUserRoles(ldap, ldapUser, user) {
 
 		const [roleName] = userField.split(/\.(.+)/);
 		if (!_.find(roles, (el) => el._id === roleName)) {
-			logger.debug(`User Role doesn't exist: ${ roleName }`);
+			logger.debug(`User Role doesn't exist: ${roleName}`);
 			continue;
 		}
 
-		logger.debug(`User role exists for mapping ${ ldapField } -> ${ roleName }`);
+		logger.debug(`User role exists for mapping ${ldapField} -> ${roleName}`);
 
 		if (isUserInLDAPGroup(ldap, ldapUser, user, ldapField)) {
 			userRoles.push(roleName);
@@ -278,11 +279,11 @@ export function mapLdapGroupsToUserRoles(ldap, ldapUser, user) {
 	return userRoles;
 }
 export function createRoomForSync(channel) {
-	logger.info(`Channel '${ channel }' doesn't exist, creating it.`);
+	logger.info(`Channel '${channel}' doesn't exist, creating it.`);
 
 	const room = createRoom('c', channel, settings.get('LDAP_Sync_User_Data_Groups_AutoChannels_Admin'), [], false, { customFields: { ldap: true } });
 	if (!room || !room.rid) {
-		logger.error(`Unable to auto-create channel '${ channel }' during ldap sync.`);
+		logger.error(`Unable to auto-create channel '${channel}' during ldap sync.`);
 		return;
 	}
 	room._id = room.rid;
@@ -305,7 +306,7 @@ export function mapLDAPGroupsToChannels(ldap, ldapUser, user) {
 	try {
 		fieldMap = JSON.parse(syncUserRolesChannelFieldMap);
 	} catch (err) {
-		logger.error(`Unexpected error : ${ err.message }`);
+		logger.error(`Unexpected error : ${err.message}`);
 		return [];
 	}
 
@@ -313,7 +314,7 @@ export function mapLDAPGroupsToChannels(ldap, ldapUser, user) {
 		return [];
 	}
 
-	_.map(fieldMap, function(channels, ldapField) {
+	_.map(fieldMap, function (channels, ldapField) {
 		if (!Array.isArray(channels)) {
 			channels = [channels];
 		}
@@ -413,9 +414,16 @@ export function syncUserData(user, ldapUser, ldap) {
 
 			Meteor.runAsUser(user._id, () => {
 				fileStore.insert(file, rs, (err, result) => {
-					Meteor.setTimeout(function() {
+					Meteor.setTimeout(function () {
 						Users.setAvatarData(user._id, 'ldap', result.etag);
-						Notifications.notifyLogged('updateAvatar', { username: user.username, etag: result.etag });
+						publishToRedis('broadcast', {
+							funcName: 'notifyLogged',
+							eventName: 'updateAvatar',
+							value: {
+								username: user.username,
+								etag: result.etag,
+							},
+						});
 					}, 500);
 				});
 			});
@@ -443,7 +451,7 @@ export function addLdapUser(ldapUser, username, password, ldap) {
 	} else if (ldapUser.mail && ldapUser.mail.indexOf('@') > -1) {
 		userObject.email = ldapUser.mail;
 	} else if (settings.get('LDAP_Default_Domain') !== '') {
-		userObject.email = `${ username || uniqueId.value }@${ settings.get('LDAP_Default_Domain') }`;
+		userObject.email = `${username || uniqueId.value}@${settings.get('LDAP_Default_Domain')}`;
 	} else {
 		const error = new Meteor.Error('LDAP-login-error', 'LDAP Authentication succeeded, there is no email to create an account. Have you tried setting your Default Domain in LDAP Settings?');
 		logger.error(error);
@@ -559,7 +567,7 @@ export function sync() {
 		}
 
 		if (settings.get('LDAP_Background_Sync_Keep_Existant_Users_Updated') === true) {
-			users.forEach(function(user) {
+			users.forEach(function (user) {
 				let ldapUser;
 
 				if (user.services && user.services.ldap && user.services.ldap.id) {

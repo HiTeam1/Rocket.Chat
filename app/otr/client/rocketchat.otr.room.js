@@ -1,18 +1,18 @@
-import { Meteor } from 'meteor/meteor';
-import { ReactiveVar } from 'meteor/reactive-var';
-import { Random } from 'meteor/random';
 import { EJSON } from 'meteor/ejson';
-import { Tracker } from 'meteor/tracker';
 import { FlowRouter } from 'meteor/kadira:flow-router';
-import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
+import { Meteor } from 'meteor/meteor';
 import { TimeSync } from 'meteor/mizzao:timesync';
-import _ from 'underscore';
+import { Random } from 'meteor/random';
+import { ReactiveVar } from 'meteor/reactive-var';
+import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
+import { Tracker } from 'meteor/tracker';
 import toastr from 'toastr';
+import _ from 'underscore';
 
-import { OTR } from './rocketchat.otr';
 import { Notifications } from '../../notifications';
 import { modal } from '../../ui-utils';
 import { getUidDirectMessage } from '../../ui-utils/client/lib/getUidDirectMessage';
+import { OTR } from './rocketchat.otr';
 
 OTR.Room = class {
 	constructor(userId, roomId) {
@@ -33,22 +33,23 @@ OTR.Room = class {
 		this.establishing.set(true);
 		this.firstPeer = true;
 		this.generateKeyPair().then(() => {
-			Notifications.notifyUser(this.peerId, 'otr', 'handshake', { roomId: this.roomId, userId: this.userId, publicKey: EJSON.stringify(this.exportedPublicKey), refresh });
+			// TODO-Hi: replace notifyUser to work without the ws-matrix
+			Notifications.notifyUser(this.peerId, 'otr', ['handshake', { roomId: this.roomId, userId: this.userId, publicKey: EJSON.stringify(this.exportedPublicKey), refresh }]);
 		});
 	}
 
 	acknowledge() {
-		Notifications.notifyUser(this.peerId, 'otr', 'acknowledge', { roomId: this.roomId, userId: this.userId, publicKey: EJSON.stringify(this.exportedPublicKey) });
+		Notifications.notifyUser(this.peerId, 'otr', ['acknowledge', { roomId: this.roomId, userId: this.userId, publicKey: EJSON.stringify(this.exportedPublicKey) }]);
 	}
 
 	deny() {
 		this.reset();
-		Notifications.notifyUser(this.peerId, 'otr', 'deny', { roomId: this.roomId, userId: this.userId });
+		Notifications.notifyUser(this.peerId, 'otr', ['deny', { roomId: this.roomId, userId: this.userId }]);
 	}
 
 	end() {
 		this.reset();
-		Notifications.notifyUser(this.peerId, 'otr', 'end', { roomId: this.roomId, userId: this.userId });
+		Notifications.notifyUser(this.peerId, 'otr', ['end', { roomId: this.roomId, userId: this.userId }]);
 	}
 
 	reset() {
@@ -66,7 +67,7 @@ OTR.Room = class {
 		}
 
 		this.userOnlineComputation = Tracker.autorun(() => {
-			const $room = $(`#chat-window-${ this.roomId }`);
+			const $room = $(`#chat-window-${this.roomId}`);
 			const $title = $('.rc-header__title', $room);
 			if (this.established.get()) {
 				if ($room.length && $title.length && !$('.otr-icon', $title).length) {

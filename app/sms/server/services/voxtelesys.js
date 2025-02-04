@@ -1,22 +1,28 @@
+import filesize from 'filesize';
 import { HTTP } from 'meteor/http';
 import { Meteor } from 'meteor/meteor';
 import { Random } from 'meteor/random';
 import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
-import filesize from 'filesize';
 
 import { settings } from '../../../settings';
-import { SMS } from '../SMS';
-import { Notifications } from '../../../notifications';
 import { fileUploadIsValidContentType } from '../../../utils/lib/fileUploadRestrictions';
 import { mime } from '../../../utils/lib/mimeTypes';
+import { SMS } from '../SMS';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 const MAX_FILE_SIZE = 5242880;
 
-const notifyAgent = (userId, rid, msg) => Notifications.notifyUser(userId, 'message', {
-	_id: Random.id(),
-	rid,
-	ts: new Date(),
-	msg,
+const notifyAgent = (userId, rid, msg) => publishToRedis(`user-${userId}`, {
+	broadcast: true,
+	key: userId,
+	funcName: 'notifyUserInThisInstance',
+	eventName: 'message',
+	value: {
+		_id: Random.id(),
+		rid,
+		ts: new Date(),
+		msg,
+	},
 });
 
 class Voxtelesys {
@@ -83,7 +89,7 @@ class Voxtelesys {
 
 			if (reason) {
 				rid && userId && notifyAgent(userId, rid, reason);
-				return console.error(`(Voxtelesys) -> ${ reason }`);
+				return console.error(`(Voxtelesys) -> ${reason}`);
 			}
 
 			media = [publicFilePath];
@@ -91,7 +97,7 @@ class Voxtelesys {
 
 		const options = {
 			headers: {
-				Authorization: `Bearer ${ this.authToken }`,
+				Authorization: `Bearer ${this.authToken}`,
 			},
 			data: {
 				to: [toNumber],
@@ -104,7 +110,7 @@ class Voxtelesys {
 		try {
 			HTTP.call('POST', this.URL || 'https://smsapi.voxtelesys.net/api/v1/sms', options);
 		} catch (error) {
-			console.error(`Error connecting to Voxtelesys SMS API: ${ error }`);
+			console.error(`Error connecting to Voxtelesys SMS API: ${error}`);
 		}
 	}
 

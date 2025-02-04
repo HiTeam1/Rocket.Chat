@@ -14,7 +14,7 @@ const redis = new Redis({
 	autoResubscribe: true,
 	maxRetriesPerRequest: 3,
 	enableOfflineQueue: true,
-	connectTimeout: 10000,  
+	connectTimeout: 10000,
 });
 console.log('Running redis startup');
 
@@ -22,6 +22,7 @@ redis.on('connect', async () => {
 	console.log('Connected to Redis');
 	try {
 		await redis.subscribe('all');
+		await redis.subscribe('broadcast');
 		await redis.subscribe('user-status');
 		hasSubbedToAllChannel = true;
 	} catch (err) {

@@ -1,10 +1,10 @@
-import { Meteor } from 'meteor/meteor';
 import { check } from 'meteor/check';
+import { Meteor } from 'meteor/meteor';
 
-import { hasPermission, getUsersInRole } from '../../app/authorization';
-import { Users, Subscriptions, Messages } from '../../app/models';
+import { getUsersInRole, hasPermission } from '../../app/authorization';
+import { Messages, Subscriptions, Users } from '../../app/models';
 import { settings } from '../../app/settings';
-import { Notifications } from '../../app/notifications';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 Meteor.methods({
 	removeRoomOwner(rid, userId) {
@@ -65,15 +65,20 @@ Meteor.methods({
 		});
 
 		if (settings.get('UI_DisplayRoles')) {
-			Notifications.notifyLogged('roles-change', {
-				type: 'removed',
-				_id: 'owner',
-				u: {
-					_id: user._id,
-					username: user.username,
-					name: user.name,
+			publishToRedis(`room-${rid}`, {
+				broadcast: true,
+				funcName: 'notifyLogged',
+				eventName: 'roles-change',
+				value: {
+					type: 'removed',
+					_id: 'owner',
+					u: {
+						_id: user._id,
+						username: user.username,
+						name: user.name,
+					},
+					scope: rid,
 				},
-				scope: rid,
 			});
 		}
 		return true;

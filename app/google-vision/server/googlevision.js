@@ -1,12 +1,9 @@
 import { Meteor } from 'meteor/meteor';
-import { Random } from 'meteor/random';
-import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
 
-import { settings } from '../../settings';
 import { callbacks } from '../../callbacks';
-import { Notifications } from '../../notifications';
-import { Uploads, Settings, Users, Messages } from '../../models';
 import { FileUpload } from '../../file-upload';
+import { Messages, Settings, Uploads, Users } from '../../models';
+import { settings } from '../../settings';
 
 class GoogleVision {
 	constructor() {
@@ -66,14 +63,6 @@ class GoogleVision {
 					if (results && results.adult === true) {
 						FileUpload.getStore('Uploads').deleteById(file._id);
 						const user = Users.findOneById(message.u && message.u._id);
-						if (user) {
-							Notifications.notifyUser(user._id, 'message', {
-								_id: Random.id(),
-								rid: message.rid,
-								ts: new Date(),
-								msg: TAPi18n.__('Adult_images_are_not_allowed', {}, user.language),
-							});
-						}
 						throw new Meteor.Error('GoogleVisionError: Image blocked');
 					}
 				} else {
@@ -133,7 +122,7 @@ class GoogleVision {
 	getAnnotations(visionTypes, visionData) {
 		if (visionTypes.length === 1) {
 			const _visionData = {};
-			_visionData[`${ visionTypes[0] }`] = visionData;
+			_visionData[`${visionTypes[0]}`] = visionData;
 			visionData = _visionData;
 		}
 		const results = {};

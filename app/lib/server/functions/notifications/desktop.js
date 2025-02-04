@@ -1,7 +1,7 @@
 import { metrics } from '../../../../metrics';
 import { settings } from '../../../../settings';
-import { Notifications } from '../../../../notifications';
 import { roomTypes } from '../../../../utils';
+import { publishToRedis } from '/app/redis/redisPublisher';
 /**
  * Send notification to user
  *
@@ -23,20 +23,26 @@ export function notifyDesktopUser({
 	const { title, text } = roomTypes.getConfig(room.t).getNotificationDetails(room, user, notificationMessage);
 
 	metrics.notificationsSent.inc({ notification_type: 'desktop' });
-	Notifications.notifyUser(userId, 'notification', {
-		title,
-		text,
-		duration,
-		payload: {
-			_id: message._id,
-			rid: message.rid,
-			tmid: message.tmid,
-			sender: message.u,
-			type: room.t,
-			name: room.name,
-			message: {
-				msg: message.msg,
-				t: message.t,
+	publishToRedis(`user-${userId}`, {
+		broadcast: true,
+		key: userId,
+		funcName: 'notifyUserInThisInstance',
+		eventName: 'notification',
+		value: {
+			title,
+			text,
+			duration,
+			payload: {
+				_id: message._id,
+				rid: message.rid,
+				tmid: message.tmid,
+				sender: message.u,
+				type: room.t,
+				name: room.name,
+				message: {
+					msg: message.msg,
+					t: message.t,
+				},
 			},
 		},
 	});

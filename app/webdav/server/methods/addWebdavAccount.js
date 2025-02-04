@@ -1,10 +1,10 @@
-import { Meteor } from 'meteor/meteor';
 import { Match, check } from 'meteor/check';
+import { Meteor } from 'meteor/meteor';
 
-import { settings } from '../../../settings';
 import { WebdavAccounts } from '../../../models';
+import { settings } from '../../../settings';
 import { WebdavClientAdapter } from '../lib/webdavClientAdapter';
-import { Notifications } from '../../../notifications/server';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 Meteor.methods({
 	async addWebdavAccount(formData) {
@@ -50,9 +50,15 @@ Meteor.methods({
 
 			await client.stat('/');
 			WebdavAccounts.insert(accountData);
-			Notifications.notifyUser(userId, 'webdav', {
-				type: 'changed',
-				account: accountData,
+			publishToRedis(`user-${userId}`, {
+				broadcast: true,
+				key: userId,
+				funcName: 'notifyUserInThisInstance',
+				eventName: 'webdav',
+				value: {
+					type: 'changed',
+					account: accountData,
+				},
 			});
 		} catch (error) {
 			throw new Meteor.Error('could-not-access-webdav', { method: 'addWebdavAccount' });
@@ -96,9 +102,15 @@ Meteor.methods({
 			}, {
 				$set: accountData,
 			});
-			Notifications.notifyUser(userId, 'webdav', {
-				type: 'changed',
-				account: accountData,
+			publishToRedis(`user-${userId}`, {
+				broadcast: true,
+				key: userId,
+				funcName: 'notifyUserInThisInstance',
+				eventName: 'webdav',
+				value: {
+					type: 'changed',
+					account: accountData,
+				},
 			});
 		} catch (error) {
 			throw new Meteor.Error('could-not-access-webdav', { method: 'addWebdavAccount' });
