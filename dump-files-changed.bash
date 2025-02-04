@@ -9,7 +9,7 @@ mkdir pr_changed_files
 for file in $changed_files; do
 	echo "Changed file: $file"
 	mkdir -p $(dirname ./pr_changed_files/$file) && touch $file
-	echo $file > ./pr_changed_files/$file
+	cat $file > ./pr_changed_files/$file
 done
 
 targz_name="pr_changed_files_${timestamp}.tar.gz"
