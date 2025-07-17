@@ -44,7 +44,7 @@ Meteor.startup(function() {
 	};
 
 	const redisMessageHandle = (data) => {
-		return handleMessage(data.clientAction, data, data._id);
+		return handleMessage(data.clientAction, data.data, data._id);
 	};
 
 
@@ -56,13 +56,13 @@ Meteor.startup(function() {
 		console.log('redis on message');
 		Messages.on('change', function({ clientAction, id, data/* , oplog*/ }) {
 			const newdata = {
-				...data,
+				data,
 				ns: 'rocketchat_message', 
 				clientAction,
 			}
-			publishToRedis(`room-${data.rid}`, newdata);
+			 publishToRedis(`room-${data.rid}`, newdata, true);
 		});
-	//	redis.on('message', redisMessageHandle);
+		redis.on('message', redisMessageHandle);
 	}
-	// redisMessageHandlers['rocketchat_message'] = redisMessageHandle;
+	 redisMessageHandlers['rocketchat_message'] = redisMessageHandle;
 });

@@ -1,6 +1,6 @@
 import { Accounts } from "meteor/accounts-base";
 import { Meteor } from "meteor/meteor";
-import { io } from "socket.io-client";
+import { io,Socket } from "socket.io-client";
 import { CachedCollectionManager } from "/app/ui-cached-collection";
 
 const webSokcetUrl =
@@ -10,7 +10,7 @@ export const webSocketConnected = new ReactiveVar(false);
 export const loggedIn = new ReactiveVar(false);
 export const reconnectionTimer = new ReactiveVar(0);
 
-let countdownTimer;
+let countdownTimer : ReturnType<typeof setInterval>;
 const showCountdown = (seconds: number) => {
   clearInterval(countdownTimer);
 
@@ -77,7 +77,7 @@ const emitToServer = (event: string, data: any) => {
   socket?.emit(event, data);
 };
 
-const registerListener = (event: string, callback: () => void) =>
+const registerListener = (event: string, callback: (data: string) => void) =>
   socket?.on(event, callback);
 
 const removeListener = (event: string) => {
