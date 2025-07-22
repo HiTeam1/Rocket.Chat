@@ -25,6 +25,7 @@ import { ROOM_DATA_STREAM } from "../../../utils/stream/constants";
 
 import { call } from "..";
 import webSocketHandler, { webSocketConnected } from "../../../ws/client";
+import SuperJSON from "superjson";
 
 const maxRoomsOpen = parseInt(getConfig("maxRoomsOpen")) || 5;
 
@@ -92,7 +93,7 @@ export const RoomManager = new (function () {
 						const room = roomTypes.findRoom(type, name, user);
 
 						if (room != null) {
-							const handleMessage = (msg) => {
+							const handleMessage = (msg) => {						
 								// msgStream.on(record.rid, async (msg) => {
 								// Should not send message to room if room has not loaded all the current messages
 								if (RoomHistoryManager.hasMoreNext(record.rid) !== false) {
@@ -135,7 +136,7 @@ export const RoomManager = new (function () {
 								record.streamActive = true;
 								const socketRoom = getSocketRoom(room._id);
 
-								webSocketHandler.emitToServer("streamMessages", { socketRoom });
+								webSocketHandler.emitToServer("streamMessages", { rid: room._id, userId: Meteor.userId(), loginToken: Accounts._storedLoginToken() });
 								webSocketHandler.registerListener('removeListeners', remvoeAllMessagesListeners)
 								webSocketHandler.registerListener(
 									`upsertMessages-${room._id}`,
@@ -193,8 +194,7 @@ export const RoomManager = new (function () {
 		close(typeName) {
 			if (openedRooms[typeName]) {
 				if (openedRooms[typeName].rid != null) {
-					const socketRoom = getSocketRoom(openedRooms[typeName].rid);
-					webSocketHandler.emitToServer("unStreamMessages", { socketRoom });
+					webSocketHandler.emitToServer("unStreamMessages", { rid: openedRooms[typeName].rid, userId: Meteor.userId(),loginToken: Accounts._storedLoginToken() });
 					webSocketHandler.removeListener(`upsertMessages-${openedRooms[typeName].rid }`);
 					
 					// msgStream.removeAllListeners(rid);

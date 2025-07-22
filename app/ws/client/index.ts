@@ -2,6 +2,7 @@ import { Accounts } from "meteor/accounts-base";
 import { Meteor } from "meteor/meteor";
 import { io,Socket } from "socket.io-client";
 import { CachedCollectionManager } from "/app/ui-cached-collection";
+import { parser } from "./parser";
 
 const webSokcetUrl =
   process.env.WEB_SOCKET_SERVICE_URL || "http://localhost:3002";
@@ -31,6 +32,7 @@ Meteor.startup(() =>
   CachedCollectionManager.onLogin(() => {
     loggedIn.set(true);
     connectToWebSocket(webSokcetUrl, {
+      parser: parser,
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 50000,
