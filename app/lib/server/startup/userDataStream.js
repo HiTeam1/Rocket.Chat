@@ -4,7 +4,7 @@ import { redisMessageHandlers } from '/app/redis/handleRedisMessage';
 import { publishToRedis } from '/app/redis/redisPublisher';
 import { settings } from '/app/settings/server';
 
-const handleUsers = (clientAction, id, data, diff) => {
+const handleUsers = ({clientAction, id, data, diff}) => {
 	console.log('handling users changed');
 
 	switch (clientAction) {
@@ -28,20 +28,18 @@ const handleUsers = (clientAction, id, data, diff) => {
 			break;
 	}
 };
-const redisHandleusers = (data) =>
-	handleUsers(data.clientAction, data._id, data, data.diff);
-if (settings.get('Use_Oplog_As_Real_Time')) {
-	Users.on('change', ({ clientAction, id, data, diff }) => {
-		handleUsers(clientAction, data, id, diff);
+
+if (settings.get('Real_Time_Strategy') === 'defalt_oplog') {
+	Users.on('change', (oplog) => {
+		handleUsers(oplog);
 	});
-} else {
-	Users.on('change', ({ clientAction, id, data, diff }) => {
+} else if (settings.get('Real_Time_Strategy') === 'app_publish_to_redis') {
+	Users.on('change', (oplog) => {
 		const newdata = {
-			...data,
+			...oplog,
 			ns: 'users',
-			clientAction,
 		};
-		publishToRedis(`user-${id}`, newdata);
+		publishToRedis(`user-${oplog.id}`, newdata);
 	});
 }
-redisMessageHandlers['users'] = redisHandleusers;
+redisMessageHandlers['users'] = handleUsers;

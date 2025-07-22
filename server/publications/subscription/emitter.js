@@ -12,7 +12,6 @@ import { settings } from '/app/settings/server';
 import ChannelHandler from '/app/ws/server/channelHandler';
 
 const handleSubscriptionChange = Meteor.bindEnvironment(({clientAction, data, id} ) => {
-	return;
 	switch (clientAction) {
 		case 'inserted':
 			ChannelHandler.addChannelOnCreate(`room-${ data.rid }`, data.u._id);
@@ -39,12 +38,12 @@ const handleSubscriptionChange = Meteor.bindEnvironment(({clientAction, data, id
 	);
 });
 
-if (settings.get('Use_Oplog_As_Real_Time')) {
-	Subscriptions.on('change', ({ clientAction, id, data }) => {
-		handleSubscriptionChange(clientAction, id, data); // TODO-Hi: Check what happens if only new subscription has sent to the client, or when only a room insertion has sent to the client
+if (settings.get('Real_Time_Strategy') === 'defalt_oplog'){
+	Subscriptions.on('change', (oplog) => {
+		handleSubscriptionChange(oplog); // TODO-Hi: Check what happens if only new subscription has sent to the client, or when only a room insertion has sent to the client
 	});
-} else {
-	Subscriptions.on('change', ({ clientAction, id, data }) => {
+} else if (settings.get('Real_Time_Strategy') === 'app_publish_to_redis'){
+	Subscriptions.on('change', (oplog) => {
 		// must query to get u._id for the desired channel
 		if (clientAction !== 'removed') {
 			data = Subscriptions.findOneById(id, { fields });
@@ -53,11 +52,10 @@ if (settings.get('Use_Oplog_As_Real_Time')) {
 		}
 
 		const newdata = {
-			...data,
+			...oplog,
 			ns: 'rocketchat_subscription',
-			clientAction,
 		};
-		// publishToRedis(`user-${ data?.u?._id }`, newdata);
+		publishToRedis(`user-${ oplog.data?.u?._id }`, newdata);
 	});
 }
 

@@ -4,7 +4,7 @@ import { hasPermission } from '../../../app/authorization';
 import { settings } from '/app/settings/server';
 import { redisMessageHandlers } from '/app/redis/handleRedisMessage';
 
-const handleSetting = (clientAction, id, data, diff) => {
+const handleSetting = ({clientAction, id, data, diff}) => {
 	if (diff && Object.keys(diff).length === 1 && diff._updatedAt) {
 		// avoid useless changes
 		return;
@@ -56,23 +56,19 @@ const handleSetting = (clientAction, id, data, diff) => {
 	}
 };
 
-const handleSettingRedis = (data) => handleSetting(data.clientAction, data, data._id);
 
-if (settings.get('Use_Oplog_As_Real_Time')) {
-	Settings.on('change', ({ clientAction, id, data, diff }) => {
-		handleSetting(clientAction, id, data, diff);
+if (settings.get('Real_Time_Strategy') === 'defalt_oplog') {
+	Settings.on('change', (oplog) => {
+		handleSetting(oplog);
 	});
-} else {
-	Settings.on('change', ({ clientAction, id, data, diff }) => {
-		console.log('settings changed');
+} else if (settings.get('Real_Time_Strategy') === 'app_publish_to_redis') {
+	Settings.on('change', (oplog) => {
 		
-		data = data || Settings.findOneById(id);
 		const newdata = {
-			...data,
+			...oplog,
 			ns: 'rocketchat_settings',
-			clientAction,
 		};
-		// publishToRedis(`all`, newdata);
+		publishToRedis(`all`, newdata);
 	});
 }
 
@@ -83,4 +79,4 @@ Notifications.streamAll.allowRead('private-settings-changed', function () {
 	return hasPermission(this.userId, 'view-privileged-setting');
 });
 
-redisMessageHandlers['rocketchat_settings'] = handleSettingRedis;
+redisMessageHandlers['rocketchat_settings'] = handleSetting;

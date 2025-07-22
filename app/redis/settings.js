@@ -9,6 +9,24 @@ Meteor.startup(() => {
 			public: false,
 			i18nLabel: 'Should Use Default Oplog Observing or the new Architecure',
 		});
+		this.add('Real_Time_Strategy', 'default_oplog', {
+			type: 'select',
+			public: true,
+			values: [
+				{
+					key: 'default_oplog',
+					i18nLabel: 'Default_oplog'
+				},
+				{
+					key: 'external_oplog_publisher_to_redis',
+					i18nLabel: 'External_oplog_publisher_to_redis',
+				},
+				{
+					key: 'app_publish_to_redis',
+					i18nLabel: 'App_publish_to_redis'
+				},
+			]
+		})
 		this.section('Redis', function() {
 			this.add('Redis_url', 'localhost', {
 				type: 'string',
