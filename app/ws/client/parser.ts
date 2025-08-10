@@ -11,6 +11,13 @@ export class Encoder {
 
 
 export class Decoder extends EventEmitter {
+  constructor() {
+    super();
+    if ( typeof this.off!== 'function') {
+      this.off = this.removeListener;
+    }
+  }
+
   add(data: any): void {
     const packet = serializer.deserialize(data);
     this.emit("decoded", packet);

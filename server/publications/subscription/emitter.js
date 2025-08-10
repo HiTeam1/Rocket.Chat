@@ -12,6 +12,7 @@ import { settings } from '/app/settings/server';
 import ChannelHandler from '/app/ws/server/channelHandler';
 
 const handleSubscriptionChange = Meteor.bindEnvironment(({clientAction, data, id} ) => {
+	return;
 	switch (clientAction) {
 		case 'inserted':
 			ChannelHandler.addChannelOnCreate(`room-${ data.rid }`, data.u._id);
@@ -45,8 +46,8 @@ if (settings.get('Real_Time_Strategy') === 'defalt_oplog'){
 } else if (settings.get('Real_Time_Strategy') === 'app_publish_to_redis'){
 	Subscriptions.on('change', (oplog) => {
 		// must query to get u._id for the desired channel
-		if (clientAction !== 'removed') {
-			data = Subscriptions.findOneById(id, { fields });
+		if (oplog.clientAction !== 'removed') {
+			data = Subscriptions.findOneById(oplog.id, { fields });
 		} else {
 			data = Subscriptions.trashFindOneById(id, { fields: { u: 1, rid: 1 } });
 		}

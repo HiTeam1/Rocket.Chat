@@ -4,6 +4,7 @@ import { Meteor } from 'meteor/meteor';
 import { APIClient } from '../../app/utils/client';
 import { Users } from '../../app/models/client';
 import { Notifications } from '../../app/notifications/client';
+import webSocketHandler from '/app/ws/client';
 
 export const isSyncReady = new ReactiveVar(false);
 
@@ -29,7 +30,8 @@ export const syncUserdata = async (uid) => {
 		return;
 	}
 
-	await Notifications.onUser('userData', ({ type, id, ...data }) => onUserEvents[type](uid, data));
+	// await Notifications.onUser('userData', ({ type, id, ...data }) => onUserEvents[type](uid, data));
+	webSocketHandler.registerListener('userData', ({ type, id, ...data }) => onUserEvents[type](uid, data));
 
 	const userData = await APIClient.v1.get('me');
 	if (userData) {

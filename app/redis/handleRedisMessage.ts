@@ -1,5 +1,6 @@
-import superjson from 'superjson';
 
+
+import { serializer } from '../serialization/serializer';
 import redis from './redis';
 
 interface IRedisHandlers {
@@ -10,22 +11,16 @@ interface IRedisHandlers {
 	users: Function;
 }
 
-const parseRedisMessage = (msg: string) => {
-	if (msg.startsWith('{"json":')) {
-	  return superjson.parse(msg);
-	} else {
-	  return JSON.parse(msg);
-	}
-  };
+
   
 
 export const redisMessageHandlers: Partial<IRedisHandlers> = {};
 
 
-redis.on('message', (channel: string, msg: string) => {
+redis.on("messageBuffer", (channel: string, msg: Buffer) => {
 	console.log('new message from redis');
 
-	const message = parseRedisMessage(msg) 
+	const message = serializer.deserialize(msg) 
 	const { ns } = message as { ns: keyof IRedisHandlers};
 	const handler = redisMessageHandlers[ns];
 
