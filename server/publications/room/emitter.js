@@ -59,7 +59,7 @@ if (settings.get('Real_Time_Strategy') === 'defalt_oplog') {
 			publishToRedis(`user-${oplog.id.slice(0, 17)}`, newdata);
 			publishToRedis(`user-${oplog.id.slice(17)}`, newdata);
 		}
-		publishToRedis(`room-${oplog.data.rid}`, newdata);
+		publishToRedis(`room-${oplog.id}`, newdata);
 	});
 }
 
