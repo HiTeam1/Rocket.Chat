@@ -1,27 +1,27 @@
-import { Rooms, Subscriptions } from '../../../app/models';
-import { Notifications } from '../../../app/notifications';
-import { emitRoomDataEvent } from '../../stream/rooms';
+import { Rooms, Subscriptions } from "../../../app/models";
+import { Notifications } from "../../../app/notifications";
+import { emitRoomDataEvent } from "../../stream/rooms";
 
-import { fields } from '.';
+import { fields } from ".";
 
-import { redisMessageHandlers } from '/app/redis/handleRedisMessage';
-import { publishToRedis } from '/app/redis/redisPublisher';
-import { settings } from '/app/settings/server';
+import { redisMessageHandlers } from "/app/redis/handleRedisMessage";
+import { publishToRedis } from "/app/redis/redisPublisher";
+import { settings } from "/app/settings/server";
 
 const getSubscriptions = (id) => {
-	const fields = { 'u._id': 1 };
+	const fields = { "u._id": 1 };
 	return Subscriptions.trashFind({ rid: id }, { fields });
 };
 
-const handleRoom = (clientAction, id, data) => {
+const handleRoom = ({ clientAction, data, id }) => {
 	switch (clientAction) {
-		case 'updated':
-		case 'inserted':
+		case "updated":
+		case "inserted":
 			// Override data cuz we do not publish all fields
 			data = data || Rooms.findOneById(id, { fields });
 			break;
 
-		case 'removed':
+		case "removed":
 			data = { _id: id };
 			break;
 	}
@@ -29,13 +29,13 @@ const handleRoom = (clientAction, id, data) => {
 	if (!data) {
 		return;
 	}
-	if (clientAction === 'removed') {
+	if (clientAction === "removed") {
 		getSubscriptions(id).forEach(({ u }) => {
 			Notifications.notifyUserInThisInstance(
 				u._id,
-				'rooms-changed',
+				"rooms-changed",
 				clientAction,
-				data,
+				data
 			);
 		});
 	}
@@ -45,21 +45,22 @@ const handleRoom = (clientAction, id, data) => {
 	emitRoomDataEvent(id, data);
 };
 
-const redisRoomHandle = (data) => handleRoom(data.clientAction, data._id, data);
-if (settings.get('Use_Oplog_As_Real_Time')) {
-	Rooms.on('change', ({ clientAction, id, data }) => {
-		handleRoom(clientAction, id, data);
+if (settings.get('Real_Time_Strategy') === 'defalt_oplog') {
+	Rooms.on("change", (oplog) => {
+		handleRoom(oplog);
 	});
-} else {
-	Rooms.on('change', ({ clientAction, id, data }) => {
-		data = data || Rooms.findOneById(id, { fields });
+} else  if (settings.get('Real_Time_Strategy') === 'app_publish_to_redis'){
+	Rooms.on("change", (oplog) => {
 		const newdata = {
-			...data,
-			ns: 'rocketchat_room',
-			clientAction,
+			...oplog,
+			ns: "rocketchat_room",
 		};
-		publishToRedis(`room-${ id }`, newdata);
+		if (oplog.id.length === 34) {
+			publishToRedis(`user-${oplog.id.slice(0, 17)}`, newdata);
+			publishToRedis(`user-${oplog.id.slice(17)}`, newdata);
+		}
+		publishToRedis(`room-${oplog.id}`, newdata);
 	});
 }
 
-redisMessageHandlers.rocketchat_room = redisRoomHandle;
+redisMessageHandlers.rocketchat_room = handleRoom;

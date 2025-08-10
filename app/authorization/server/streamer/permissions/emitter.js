@@ -7,7 +7,7 @@ import { settings } from '/app/settings/server';
 import { publishToRedis } from '/app/redis/redisPublisher';
 import { redisMessageHandlers } from '/app/redis/handleRedisMessage';
 
-const handlePermissions = (clientAction, id, data, diff) => {
+const handlePermissions = ({clientAction, id, data, diff}) => {
 	if (diff && Object.keys(diff).length === 1 && diff._updatedAt) {
 		// avoid useless changes
 		return;
@@ -44,22 +44,19 @@ const handlePermissions = (clientAction, id, data, diff) => {
 	}
 };
 
-const handlePermissionsRedis = (data) =>
-	handlePermissions(data.clientAction, data._id, data, data.diff);
 
-if (settings.get('Use_Oplog_As_Real_Time')) {
-	Permissions.on('change', ({ clientAction, id, data, diff }) => {
-		handlePermissions(clientAction, id, data, diff);
+
+if (settings.get('Real_Time_Strategy') === 'app_publish_to_redis') {
+	Permissions.on('change', (oplog) => {
+		handlePermissions(oplog);
 	});
-} else {
-	Permissions.on('change', ({ clientAction, id, data, diff }) => {
-		data = data || Permissions.findOneById(id);
+} else if (settings.get('Real_Time_Strategy') === 'app_publish_to_redis') {
+	Permissions.on('change', (oplog) => {
 		const newdata = {
-			...data,
+			...oplog,
 			ns: 'rocketchat_permissions',
-			clientAction,
 		};
 		publishToRedis(`all`, newdata);
 	});
 }
-redisMessageHandlers['rocketchat_permissions'] = handlePermissionsRedis;
+redisMessageHandlers['rocketchat_permissions'] = handlePermissions;
