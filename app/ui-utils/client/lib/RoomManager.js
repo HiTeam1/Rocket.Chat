@@ -136,7 +136,7 @@ export const RoomManager = new (function () {
 								record.streamActive = true;
 								const socketRoom = getSocketRoom(room._id);
 
-								webSocketHandler.emitToServer("streamMessages", { rid: room._id, userId: Meteor.userId(), loginToken: Accounts._storedLoginToken() });
+								webSocketHandler.emitToServer("streamMessages", { rid: room._id, userId: Meteor.userId() });
 								webSocketHandler.registerListener('removeListeners', remvoeAllMessagesListeners)
 								webSocketHandler.registerListener(
 									`upsertMessages-${room._id}`,
@@ -194,7 +194,7 @@ export const RoomManager = new (function () {
 		close(typeName) {
 			if (openedRooms[typeName]) {
 				if (openedRooms[typeName].rid != null) {
-					webSocketHandler.emitToServer("unStreamMessages", { rid: openedRooms[typeName].rid, userId: Meteor.userId(),loginToken: Accounts._storedLoginToken() });
+					webSocketHandler.emitToServer("unStreamMessages", { rid: openedRooms[typeName].rid, userId: Meteor.userId()});
 					webSocketHandler.removeListener(`upsertMessages-${openedRooms[typeName].rid }`);
 					
 					// msgStream.removeAllListeners(rid);
