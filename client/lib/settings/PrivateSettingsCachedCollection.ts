@@ -17,7 +17,7 @@ export class PrivateSettingsCachedCollection extends CachedCollection {
 		// 	this.sync();
 		// });
 		webSocketHandler.emitToServer('private-settings-changed');
-		webSocketHandler.registerListener('userData', ({ clientAction, _id, ...record }: any) => {
+		webSocketHandler.registerListener('private-settings-changed', ({ clientAction, _id, ...record }: any) => {
 			this.log('record received', clientAction, { _id, ...record });
 			this.collection.upsert({ _id }, record);
 			this.sync();

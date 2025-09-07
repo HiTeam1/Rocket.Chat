@@ -38,7 +38,6 @@ const decreaseConnectionIdFromChannelBindCount = async (channel: string, connect
 	const release = await acquireLock(channel);
 	try {
 		const listeningConnections = channelListeners.get(channel);
-		console.log('listeners ', listeningConnections, channel, connectionId);
 		if (listeningConnections?.size === 1) {
 			console.log(`Unsubscribing to channel: ${ channel }`);
 			channelListeners.delete(channel);
@@ -53,7 +52,6 @@ const decreaseConnectionIdFromChannelBindCount = async (channel: string, connect
 
 const removeConnectionIdBinding = (connectionId: string): void => {
 	const connectionChannels = connectionToChannels.get(connectionId);
-	console.log('connectionChannels: ', connectionChannels);
 	connectionChannels?.forEach(async (channel: string) => {
 		decreaseConnectionIdFromChannelBindCount(channel, connectionId);
 	});
