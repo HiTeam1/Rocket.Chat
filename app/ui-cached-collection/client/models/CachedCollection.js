@@ -267,13 +267,9 @@ export class CachedCollection extends EventEmitter {
 	}
 
 	async setupListener(eventType,eventName) {
-		console.log(this.eventName);
-		
 		const { RoomManager } = await import('../../../ui-utils');
 		const { ChatRoom, CachedChatRoom } = await import('../../../models');
-		webSocketHandler.registerListener(eventName || this.eventName, ({clientAction, data}) => {
-			
-			
+		webSocketHandler.registerListener(eventName || this.eventName, ({clientAction, data}) => {			
 			this.log('record received', clientAction, data);
 			callbacks.run(`cachedCollection-received-${ this.name }`, data, clientAction);
 			if (clientAction === 'removed') {

@@ -17,7 +17,7 @@ class Notifications {
 		this.streamAll = new Meteor.Streamer('notify-all');
 		this.streamLogged = new Meteor.Streamer('notify-logged');
 		this.streamRoom = new Meteor.Streamer('notify-room');
-		this.streamBind = new Meteor.Streamer('channel-subscriber');
+		// this.streamBind = new Meteor.Streamer('channel-subscriber');
 		this.streamUser = new Meteor.Streamer('notify-user');
 		if (this.debug === true) {
 			this.onAll(function() {

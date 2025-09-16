@@ -53,7 +53,6 @@ export const MsgTyping = new class {
 			return;
 		}
 		 const  handleTyping = ({ username, typing })=>  {
-			console.log({username,typing});
 			
 			const user = Meteor.users.findOne(Meteor.userId(), { fields: { name: 1, username: 1 } });
 			if (username === shownName(user)) {

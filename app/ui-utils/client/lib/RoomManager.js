@@ -455,18 +455,18 @@ callbacks.add(
 );
 
 CachedCollectionManager.onLogin(() => {
-	Notifications.onUser("subscriptions-changed", (action, sub) => {
+	Notifications.onUser("subscriptions-changed", ({data}) => {
 		const ignored =
-			sub && sub.ignored ? { $nin: sub.ignored } : { $exists: true };
+			data && data.ignored ? { $nin: data.ignored } : { $exists: true };
 
 		ChatMessage.update(
-			{ rid: sub.rid, ignored },
+			{ rid: data.rid, ignored },
 			{ $unset: { ignored: true } },
 			{ multi: true }
 		);
-		if (sub && sub.ignored) {
+		if (data && data.ignored) {
 			ChatMessage.update(
-				{ rid: sub.rid, t: { $ne: "command" }, "u._id": { $in: sub.ignored } },
+				{ rid: data.rid, t: { $ne: "command" }, "u._id": { $in: data.ignored } },
 				{ $set: { ignored: true } },
 				{ multi: true }
 			);

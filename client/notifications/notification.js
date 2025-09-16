@@ -79,8 +79,8 @@ Meteor.startup(function() {
 				}
 			};
 
-			Notifications.onUser('subscriptions-changed', (action, sub) => {
-				notifyNewRoom(sub);
+			Notifications.onUser('subscriptions-changed', ({data}) => {
+				notifyNewRoom(data);
 			});
 		}
 	});
