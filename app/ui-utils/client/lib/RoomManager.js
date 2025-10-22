@@ -26,11 +26,10 @@ import { ROOM_DATA_STREAM } from "../../../utils/stream/constants";
 import { call } from "..";
 import webSocketHandler, { webSocketConnected } from "../../../ws/client";
 import SuperJSON from "superjson";
+import { getSocketRoom } from "/app/ws/client/utils";
 
 const maxRoomsOpen = parseInt(getConfig("maxRoomsOpen")) || 5;
 
-const getSocketRoom = (rid) =>
-	rid.length === 34 ? `${rid}-${Meteor.userId()}` : rid;
 const onDeleteMessageStream = (msg) => {
 	ChatMessage.remove({ _id: msg._id });
 // remove thread refenrece from deleted message
@@ -136,24 +135,22 @@ export const RoomManager = new (function () {
 								record.streamActive = true;
 								const socketRoom = getSocketRoom(room._id);
 
-								webSocketHandler.emitToServer("streamMessages", { rid: room._id, userId: Meteor.userId(), loginToken: Accounts._storedLoginToken() });
+								webSocketHandler.emitToServer("streamMessages", { rid: room._id, userId: Meteor.userId() });
 								webSocketHandler.registerListener('removeListeners', remvoeAllMessagesListeners)
 								webSocketHandler.registerListener(
 									`upsertMessages-${room._id}`,
 									handleMessage
 								);
-								webSocketHandler.registerListener('deleteMessage',onDeleteMessageStream);
-								webSocketHandler.registerListener('deleteMessageBulk', onDeleteMessageBulkStream);
-								// Notifications.onRoom(
-								// 	record.rid,
-								// 	"deleteMessage",
-								// 	onDeleteMessageStream
-								// ); // eslint-disable-line no-use-before-define
-								// Notifications.onRoom(
-								// 	record.rid,
-								// 	"deleteMessageBulk",
-								// 	onDeleteMessageBulkStream
-								// ); // eslint-disable-line no-use-before-define
+								Notifications.onRoom(
+									record.rid,
+									"deleteMessage",
+									onDeleteMessageStream
+								); // eslint-disable-line no-use-before-define
+								Notifications.onRoom(
+									record.rid,
+									"deleteMessageBulk",
+									onDeleteMessageBulkStream
+								); // eslint-disable-line no-use-before-define
 							}
 						}
 
@@ -194,8 +191,8 @@ export const RoomManager = new (function () {
 		close(typeName) {
 			if (openedRooms[typeName]) {
 				if (openedRooms[typeName].rid != null) {
-					webSocketHandler.emitToServer("unStreamMessages", { rid: openedRooms[typeName].rid, userId: Meteor.userId(),loginToken: Accounts._storedLoginToken() });
-					webSocketHandler.removeListener(`upsertMessages-${openedRooms[typeName].rid }`);
+					webSocketHandler.emitToServer("unStreamMessages", { rid: openedRooms[typeName].rid, userId: Meteor.userId()});
+					remvoeAllMessagesListeners(openedRooms[typeName].rid);
 					
 					// msgStream.removeAllListeners(rid);
 					Notifications.unRoom(
@@ -458,18 +455,18 @@ callbacks.add(
 );
 
 CachedCollectionManager.onLogin(() => {
-	Notifications.onUser("subscriptions-changed", (action, sub) => {
+	Notifications.onUser("subscriptions-changed", ({data}) => {
 		const ignored =
-			sub && sub.ignored ? { $nin: sub.ignored } : { $exists: true };
+			data && data.ignored ? { $nin: data.ignored } : { $exists: true };
 
 		ChatMessage.update(
-			{ rid: sub.rid, ignored },
+			{ rid: data.rid, ignored },
 			{ $unset: { ignored: true } },
 			{ multi: true }
 		);
-		if (sub && sub.ignored) {
+		if (data && data.ignored) {
 			ChatMessage.update(
-				{ rid: sub.rid, t: { $ne: "command" }, "u._id": { $in: sub.ignored } },
+				{ rid: data.rid, t: { $ne: "command" }, "u._id": { $in: data.ignored } },
 				{ $set: { ignored: true } },
 				{ multi: true }
 			);

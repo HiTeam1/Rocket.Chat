@@ -33,6 +33,7 @@ Meteor.startup(function() {
 	}
 
 	const handleMessage = ({clientAction, data, id}) => {
+		return;
 		switch (clientAction) {
 			case 'inserted':
 			case 'updated':

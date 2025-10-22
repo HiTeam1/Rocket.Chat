@@ -1,6 +1,7 @@
 import Redis from "ioredis";
+import { serializer } from "../serialization/serializer";
 
-import superjson from "superjson";
+
 
 const redis = new Redis({
   host: "localhost" as string, // Redis server hostname
@@ -24,10 +25,7 @@ redis.on("error", (err) => {
 export const publishToRedis = (
   channel: string,
   message: object,
-  useSuperJson: boolean = false
 ) => {
-  const msg = useSuperJson
-    ? superjson.stringify(message)
-    : JSON.stringify(message);
-  redis.publish(channel, superjson.stringify(msg));
+
+  redis.publish(channel, serializer.serialize(message));
 };

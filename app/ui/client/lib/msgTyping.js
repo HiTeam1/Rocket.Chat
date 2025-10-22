@@ -7,6 +7,7 @@ import _ from 'underscore';
 
 import { Notifications } from '../../../notifications';
 import { settings } from '../../../settings';
+import webSocketHandler, { webSocketConnected } from '/app/ws/client';
 
 const shownName = function(user) {
 	if (!user) {
@@ -28,10 +29,12 @@ const usersTyping = new ReactiveDict();
 
 const stopTyping = (rid) => Notifications.notifyRoom(rid, 'typing', { username: shownName(Meteor.user()), typing: false });
 const typing = (rid) => Notifications.notifyRoom(rid, 'typing', { username: shownName(Meteor.user()), typing: true });
-
 export const MsgTyping = new class {
 	constructor() {
-		Tracker.autorun(() => Session.get('openedRoom') && this.addStream(Session.get('openedRoom')));
+		Tracker.autorun(() => {
+			const connected = webSocketConnected.get();
+			 return Session.get('openedRoom') && this.addStream(Session.get('openedRoom'))
+	});
 	}
 
 	get selfTyping() { return selfTyping.get(); }
@@ -49,7 +52,8 @@ export const MsgTyping = new class {
 		if (rooms[rid]) {
 			return;
 		}
-		rooms[rid] = function({ username, typing }) {
+		 const  handleTyping = ({ username, typing })=>  {
+			
 			const user = Meteor.users.findOne(Meteor.userId(), { fields: { name: 1, username: 1 } });
 			if (username === shownName(user)) {
 				return;
@@ -68,7 +72,8 @@ export const MsgTyping = new class {
 
 			usersTyping.set(rid, users);
 		};
-		return Notifications.onRoom(rid, 'typing', rooms[rid]);
+		// return webSocketHandler.registerListener('typing', handleTyping);
+		return Notifications.onRoom(rid, 'typing', handleTyping);
 	}
 
 	stop(rid) {

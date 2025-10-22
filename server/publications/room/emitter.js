@@ -14,6 +14,7 @@ const getSubscriptions = (id) => {
 };
 
 const handleRoom = ({ clientAction, data, id }) => {
+	return;
 	switch (clientAction) {
 		case "updated":
 		case "inserted":

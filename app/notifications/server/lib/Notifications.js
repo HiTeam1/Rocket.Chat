@@ -1,11 +1,12 @@
 import { DDPCommon } from 'meteor/ddp-common';
 import { Meteor } from 'meteor/meteor';
 
-import { loginStream } from '../../../../../../../app/lib/server/lib/loginStream';
-import { publishToRedis } from '../../../../../../../app/redis/redisPublisher';
+import loginStream from '/app/lib/server/lib/loginStream';
 import { Rooms, Subscriptions } from '../../../models/server';
 import { settings } from '../../../settings/server';
 import { WEB_RTC_EVENTS } from '../../../webrtc';
+import { publishToRedis } from '/app/redis/redisPublisher';
+import { key } from 'localforage';
 
 const changedPayload = function(collection, id, fields) {
 	return DDPCommon.stringifyDDP({
@@ -101,7 +102,7 @@ class Notifications {
 	notifyAll(eventName, value) {
 		if (settings.get('Troubleshoot_Disable_Instance_Broadcast')) { return; }
 		if (this.debug === true) {
-			console.log('notifyAll', [eventName, data]);
+			console.log('notifyAll', [eventName, value]);
 		}
 
 		const body = {
@@ -117,7 +118,7 @@ class Notifications {
 	notifyLogged(eventName, value) {
 		if (settings.get('Troubleshoot_Disable_Instance_Broadcast')) { return; }
 		if (this.debug === true) {
-			console.log('notifyLogged', [eventName, data]);
+			console.log('notifyLogged', [eventName, value]);
 		}
 		const body = {
 			ns: 'broadcast',
@@ -132,14 +133,14 @@ class Notifications {
 	notifyRoom(room, eventName, value) {
 		if (settings.get('Troubleshoot_Disable_Instance_Broadcast')) { return; }
 		if (this.debug === true) {
-			console.log('notifyRoom', [room, eventName, data]);
+			console.log('notifyRoom', [room, eventName, value]);
 		}
 		const body = {
-			funcName: 'notifyRoomInThisInstance',
 			ns: 'broadcast',
-			key: room,
+			key: 'room',
 			eventName,
-			value,
+			room,
+			data: value,
 		};
 
 		if (room.length === 17) {
@@ -155,14 +156,14 @@ class Notifications {
 	notifyUser(userId, eventName, value) {
 		if (settings.get('Troubleshoot_Disable_Instance_Broadcast')) { return; }
 		if (this.debug === true) {
-			console.log('notifyUser', [userId, eventName, data]);
+			console.log('notifyUser', [userId, eventName, value]);
 		}
 		const body = {
 			ns: 'broadcast',
-			key: userId,
-			funcName: 'notifyUserInThisInstance',
+			key: 'user',
+			userId,
 			eventName,
-			value,
+			data: value,
 		};
 		return publishToRedis(`user-${ userId }`, body);
 	}
@@ -199,15 +200,6 @@ class Notifications {
 		return this.streamUser.emitWithoutBroadcast.apply(this.streamUser, args);
 	}
 
-	pubsubAdapter(key, eventName, funcName, value) {
-		if (this[funcName]) {
-			if (key) {
-				return this[funcName](key, eventName, value);
-			}
-
-			return this[funcName](eventName, value);
-		}
-	}
 }
 
 const notifications = new Notifications();

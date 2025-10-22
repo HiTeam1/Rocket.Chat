@@ -1,5 +1,6 @@
-import superjson from 'superjson';
 
+
+import { serializer } from '../serialization/serializer';
 import { Notifications } from '../notifications/server';
 import redis from './redis';
 
@@ -24,20 +25,23 @@ type IBroadcastMsg = {
 	broadcast?: boolean;
 };
 
-const parseRedisMessage = (msg: string) => {
-	if (msg.startsWith('{"json":')) {
-	  return superjson.parse(msg);
-	}
-	  return JSON.parse(msg);
-};
+
+
+
 
 
 export const redisMessageHandlers: Partial<IRedisHandlers> = {};
 
 
-redis.on('message', (channel: string, msg: string) => {
+redis.on("messageBuffer", (channel: string, msg: Buffer) => {
 	console.log('new message from redis');
 
+	const message = serializer.deserialize(msg) 
+	const { ns } = message as { ns: keyof IRedisHandlers};
+	const handler = redisMessageHandlers[ns];
+
+	if (handler) {
+		return handler(message);
 	const message = parseRedisMessage(msg) as IBroadcastMsg | IRedisMsg;
 
 	if (message.ns === 'broadcast') {

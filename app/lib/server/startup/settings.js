@@ -1,8 +1,8 @@
 import { Random } from 'meteor/random';
 
 import { settings } from '../../../settings/server';
-import { MessageTypesValues } from '../../lib/MessageTypes';
 import './email';
+import { MessageTypesValues } from '../../lib/MessageTypes';
 
 // Insert server unique id if it doesn't exist
 settings.add('uniqueID', process.env.DEPLOYMENT_ID || Random.id(), {
@@ -970,11 +970,8 @@ settings.addGroup('General', function() {
 		});
 	});
 	return this.section('Stream_Cast', function() {
-		this.add('Stream_Cast_Address', '', {
+		return this.add('Stream_Cast_Address', '', {
 			type: 'string',
-		});
-		this.add('Cancel_Pods_Matrix', false, {
-			type: 'boolean',
 		});
 	});
 });

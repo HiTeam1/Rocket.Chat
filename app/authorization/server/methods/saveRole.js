@@ -5,6 +5,7 @@ import { settings } from '../../../settings/server';
 import { Notifications } from '../../../notifications/server';
 import { hasPermission } from '../functions/hasPermission';
 import { rolesStreamer } from '../lib/streamer';
+import { publishToRedis } from '/app/redis/redisPublisher';
 
 Meteor.methods({
 	'authorization:saveRole'(roleData) {
@@ -32,10 +33,16 @@ Meteor.methods({
 				_id: roleData.name,
 			});
 		}
-		rolesStreamer.emit('roles', {
-			type: 'changed',
-			...roleData,
-		});
+		const message = {
+			ns: 'rocketchat_roles',
+			clientAction: 'changed',
+			...roleData
+		}
+		publishToRedis('all', message);
+		// rolesStreamer.emit('roles', {
+		// 	type: 'changed',
+		// 	...roleData,
+		// });
 		return update;
 	},
 });

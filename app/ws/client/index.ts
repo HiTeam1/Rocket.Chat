@@ -75,7 +75,7 @@ const connectToWebSocket = (url: string, options = {}) => {
   return socket;
 };
 
-const emitToServer = (event: string, data: any) => {
+const emitToServer = (event: string, data?: any) => {
   socket?.emit(event, data);
 };
 

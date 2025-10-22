@@ -7,6 +7,7 @@ import { CachedCollectionManager } from '../../ui-cached-collection';
 import { APIClient } from '../../utils/client';
 import { Roles } from '../../models/client';
 import { rolesStreamer } from './lib/streamer';
+import webSocketHandler from '/app/ws/client';
 
 Meteor.startup(() => {
 	CachedCollectionManager.onLogin(async () => {
@@ -25,6 +26,7 @@ Meteor.startup(() => {
 	const events = {
 		changed: (role) => {
 			delete role.type;
+			delete role.ns;
 			Roles.upsert({ _id: role.name }, role);
 		},
 		removed: (role) => Roles.remove({ _id: role.name }),
@@ -34,7 +36,7 @@ Meteor.startup(() => {
 		if (!Meteor.userId()) {
 			return;
 		}
-		rolesStreamer.on('roles', (role) => events[role.type](role));
+		webSocketHandler.registerListener('roles', (role) => events[role.clientAction](role));
 		c.stop();
 	});
 });
