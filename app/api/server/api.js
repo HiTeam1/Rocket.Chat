@@ -5,7 +5,10 @@ import { DDP } from 'meteor/ddp';
 import { Accounts } from 'meteor/accounts-base';
 import { Restivus } from 'meteor/nimble:restivus';
 import { RateLimiter } from 'meteor/rate-limit';
+import { Promise } from 'meteor/promise';
 import _ from 'underscore';
+
+import { publisherRedis as redis } from '../../redis/redisPublisher';
 
 import { Logger } from '../../logger';
 import { settings } from '../../settings';
@@ -221,18 +224,43 @@ export class APIClass extends Restivus {
 			return;
 		}
 
-		rateLimiterDictionary[objectForRateLimitMatch.route].rateLimiter.increment(objectForRateLimitMatch);
-		const attemptResult = rateLimiterDictionary[objectForRateLimitMatch.route].rateLimiter.check(objectForRateLimitMatch);
-		const timeToResetAttempsInSeconds = Math.ceil(attemptResult.timeToReset / 1000);
-		response.setHeader('X-RateLimit-Limit', rateLimiterDictionary[objectForRateLimitMatch.route].options.numRequestsAllowed);
-		response.setHeader('X-RateLimit-Remaining', attemptResult.numInvocationsLeft);
-		response.setHeader('X-RateLimit-Reset', new Date().getTime() + attemptResult.timeToReset);
+		const route = objectForRateLimitMatch.route;
+		const ip = objectForRateLimitMatch.IPAddr;
+		const key = `rate-limit:${ route }:${ userId || 'anonymous' }:${ ip }`;
 
-		if (!attemptResult.allowed) {
-			throw new Meteor.Error('error-too-many-requests', `Error, too many requests. Please slow down. You must wait ${ timeToResetAttempsInSeconds } seconds before trying this endpoint again.`, {
-				timeToReset: attemptResult.timeToReset,
-				seconds: timeToResetAttempsInSeconds,
-			});
+		let limit = settings.get('API_Enable_Rate_Limiter_Limit_Calls_Default') || 11;
+		if (userId && hasPermission(userId, 'api-high-rate-limit')) {
+			limit = settings.get('API_Enable_Rate_Limiter_Limit_Calls_High') || 50;
+		}
+
+		const timeInterval = settings.get('API_Enable_Rate_Limiter_Limit_Time_Default') || 6000;
+		const timeIntervalInSeconds = Math.ceil(timeInterval / 1000);
+
+		try {
+			const currentCount = Promise.await(redis.incr(key));
+			if (currentCount === 1) {
+				Promise.await(redis.expire(key, timeIntervalInSeconds));
+			}
+
+			const numInvocationsLeft = Math.max(0, limit - currentCount);
+
+			response.setHeader('X-RateLimit-Limit', limit);
+			response.setHeader('X-RateLimit-Remaining', numInvocationsLeft);
+			response.setHeader('X-RateLimit-Reset', new Date().getTime() + timeInterval);
+
+			if (currentCount > limit) {
+				throw new Meteor.Error('error-too-many-requests', `Error, too many requests. Please slow down. You must wait ${ timeIntervalInSeconds } seconds before trying this endpoint again.`, {
+					timeToReset: timeInterval,
+					seconds: timeIntervalInSeconds,
+				});
+			}
+		} catch (error) {
+			// If it's the too-many-requests error we threw, rethrow it so it blocks the request
+			if (error.error === 'error-too-many-requests') {
+				throw error;
+			}
+			// Otherwise, it's a Redis error. Fail open to prevent taking down the API
+			logger.error(`Redis rate limiter failed for key ${ key }:`, error);
 		}
 	}
 

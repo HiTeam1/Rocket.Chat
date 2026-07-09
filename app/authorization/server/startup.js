@@ -20,6 +20,7 @@ Meteor.startup(function () {
 		{ _id: 'add-user-to-any-c-room', roles: ['admin'] },
 		{ _id: 'add-user-to-any-p-room', roles: [] },
 		{ _id: 'api-bypass-rate-limit', roles: ['admin', 'bot', 'app'] },
+		{ _id: 'api-high-rate-limit', roles: ['admin', 'bot', 'app'] },
 		{ _id: 'archive-room', roles: ['admin', 'owner'] },
 		{ _id: 'assign-admin-role', roles: ['admin'] },
 		{ _id: 'assign-roles', roles: ['admin'] },
